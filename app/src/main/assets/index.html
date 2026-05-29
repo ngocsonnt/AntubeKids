@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>Antube Kids</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+    <!-- ============ GRID (home) ============ -->
+    <div id="grid-screen" class="screen active">
+        <header class="top-bar">
+            <h1 class="title">🎬 Antube Kids</h1>
+            <div class="top-actions">
+                <button id="reload-btn" class="icon-btn" title="Reload">🔄</button>
+                <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+            </div>
+        </header>
+
+        <div id="status" class="status"></div>
+
+        <div id="main">
+            <div id="grid" class="grid"></div>
+            <aside id="sheet-panel" class="sheet-panel">
+                <h2 class="panel-title">Playlists</h2>
+                <div id="sheet-list" class="sheet-list"></div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- ============ PLAYER ============ -->
+    <div id="player-screen" class="screen">
+        <div id="player"></div>
+        <div id="tap-layer"></div>
+        <button id="back-btn" class="back-btn">⬅ Back</button>
+        <div id="now-playing" class="now-playing"></div>
+        <div id="controls" class="controls">
+            <button class="ctrl-btn" data-act="prev" title="Previous">⏮</button>
+            <button class="ctrl-btn" data-act="back10" title="Back 10s">⏪</button>
+            <button class="ctrl-btn" id="play-pause" data-act="playpause" title="Play / Pause">⏸</button>
+            <button class="ctrl-btn" data-act="fwd10" title="Forward 10s">⏩</button>
+            <button class="ctrl-btn" data-act="next" title="Next">⏭</button>
+        </div>
+    </div>
+
+    <!-- ============ SETTINGS ============ -->
+    <div id="settings-screen" class="screen overlay">
+        <div class="settings-box">
+            <h2>Settings</h2>
+            <p class="hint">Paste the <b>Google Sheet link</b> that holds your video list.
+               The sheet must be shared as <b>“Anyone with the link → Viewer”</b>.</p>
+            <p class="hint">One video per row: <b>column A = title</b>, <b>column B = YouTube link</b>.</p>
+            <input id="sheet-input" type="text" inputmode="url"
+                   placeholder="https://docs.google.com/spreadsheets/d/..." />
+            <div class="settings-actions">
+                <button id="settings-save" class="primary-btn">Save &amp; Load</button>
+                <button id="settings-cancel" class="ghost-btn">Cancel</button>
+            </div>
+            <p id="settings-msg" class="settings-msg"></p>
+            <p id="app-version" class="version"></p>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

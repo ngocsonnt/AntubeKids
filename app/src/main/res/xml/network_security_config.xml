@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Máy chiếu đời cũ có kho CA hệ thống lỗi thời, không nhận ra chứng chỉ mới
+  của Google (Google Trust Services: WE2 / GTS Root R4...).
+  Ta đóng gói sẵn các root CA của Google và tin tưởng chúng KÈM với CA hệ thống,
+  để kết nối HTTPS tới docs.google.com và youtube.com luôn hợp lệ.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="@raw/gts_r1" />
+            <certificates src="@raw/gts_r2" />
+            <certificates src="@raw/gts_r3" />
+            <certificates src="@raw/gts_r4" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

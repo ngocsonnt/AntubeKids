@@ -1,0 +1,21 @@
+# Build outputs
+build/
+app/build/
+.gradle/
+
+# Local config (machine-specific)
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
