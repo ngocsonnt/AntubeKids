@@ -51,3 +51,5 @@ opening it with the device's file manager (enable "install from unknown sources"
 - UI served over a virtual `https://appassets.androidplatform.net` origin so the
   YouTube IFrame Player accepts it (a `file://` origin causes player error 153)
 - See `HUONG_DAN.md` for a user guide in Vietnamese
+- See `HUONG_DAN_TAO_LAI.md` for a full step-by-step **recreation guide** (architecture,
+  the no-auth Google Sheet approach, and every real-world bug + fix encountered)
