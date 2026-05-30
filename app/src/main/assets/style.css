@@ -210,6 +210,21 @@ html, body {
 .primary-btn:focus, .ghost-btn:focus { outline: none; border-color: #ffd54f; }
 .settings-msg { margin-top: 2vh; font-size: 2.4vh; color: #ff8a80; min-height: 3vh; }
 .version { margin-top: 2vh; font-size: 2vh; color: #6f7f99; text-align: right; }
+.update-row { display: flex; align-items: center; gap: 2vw; margin-top: 2.5vh; }
+.update-text { font-size: 2.4vh; color: #b9c7de; flex: 1; }
+
+/* Update banner on the grid */
+.update-banner {
+    display: none;
+    margin: 0 3vw 1vh;
+    padding: 1.4vh 2vw;
+    border-radius: 1.2vh;
+    background: #2e7d32;
+    color: #fff;
+    font-size: 2.6vh;
+    font-weight: 700;
+    cursor: pointer;
+}
 
 /* ---------- Big centered message ---------- */
 .big-msg {

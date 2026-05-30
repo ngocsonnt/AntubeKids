@@ -2,9 +2,11 @@ package com.kids.videoplayer;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.KeyEvent;
 import android.view.View;
@@ -21,6 +23,8 @@ import android.widget.FrameLayout;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -39,6 +43,10 @@ public class MainActivity extends Activity {
     // Virtual https origin used to serve the bundled assets (no real network).
     private static final String APP_HOST = "appassets.androidplatform.net";
     private static final String APP_URL = "https://" + APP_HOST + "/index.html";
+
+    // Self-update: a small JSON manifest in the GitHub repo describes the latest build.
+    private static final String UPDATE_JSON_URL =
+            "https://raw.githubusercontent.com/ngocsonnt/AntubeKids/main/update.json";
 
     private WebView webView;
     private SharedPreferences prefs;
@@ -255,11 +263,108 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String getAppVersion() {
-            try {
-                return getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
-            } catch (Exception e) {
-                return "";
+            return currentVersionName();
+        }
+
+        // Check GitHub for a newer build; report back to window.onUpdateInfo(json).
+        @JavascriptInterface
+        public void checkUpdate() {
+            new Thread(() -> {
+                try {
+                    JSONObject o = new JSONObject(httpGet(UPDATE_JSON_URL, 0));
+                    JSONObject out = new JSONObject();
+                    out.put("available", o.optInt("versionCode", 0) > currentVersionCode());
+                    out.put("latest", o.optString("versionName", ""));
+                    out.put("current", currentVersionName());
+                    out.put("notes", o.optString("notes", ""));
+                    out.put("apkUrl", o.optString("apkUrl", ""));
+                    deliver("window.onUpdateInfo", out.toString());
+                } catch (Exception e) {
+                    deliver("window.onUpdateError", e.getMessage() == null ? "" : e.getMessage());
+                }
+            }).start();
+        }
+
+        // Download the APK and launch the system installer.
+        @JavascriptInterface
+        public void startUpdate(final String apkUrl) {
+            runOnUiThread(() -> {
+                if (!canInstall()) {
+                    requestInstallPermission();
+                    deliver("window.onUpdateStatus", "Allow installs for this app, then tap Update again.");
+                    return;
+                }
+                deliver("window.onUpdateStatus", "Downloading update…");
+                new Thread(() -> {
+                    try {
+                        File f = downloadTo(apkUrl, new File(getFilesDir(), "update.apk"), 0);
+                        runOnUiThread(() -> installApk(f));
+                    } catch (Exception e) {
+                        deliver("window.onUpdateStatus", "Update failed: " + e.getMessage());
+                    }
+                }).start();
+            });
+        }
+    }
+
+    @SuppressWarnings("deprecation")
+    private int currentVersionCode() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionCode; }
+        catch (Exception e) { return 0; }
+    }
+    private String currentVersionName() {
+        try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+        catch (Exception e) { return ""; }
+    }
+
+    private boolean canInstall() {
+        return getPackageManager().canRequestPackageInstalls();
+    }
+    private void requestInstallPermission() {
+        try {
+            startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    Uri.parse("package:" + getPackageName())));
+        } catch (Exception e) { /* ignore */ }
+    }
+
+    private File downloadTo(String urlStr, File out, int depth) throws Exception {
+        if (depth > 5) throw new Exception("Too many redirects");
+        HttpURLConnection conn = null;
+        try {
+            conn = (HttpURLConnection) new URL(urlStr).openConnection();
+            conn.setInstanceFollowRedirects(true);
+            conn.setConnectTimeout(15000);
+            conn.setReadTimeout(60000);
+            conn.setRequestProperty("User-Agent", "AntubeKids");
+            int code = conn.getResponseCode();
+            if (code >= 300 && code < 400) {
+                String loc = conn.getHeaderField("Location");
+                conn.disconnect();
+                return downloadTo(loc, out, depth + 1);
             }
+            if (code != 200) throw new Exception("HTTP " + code);
+            InputStream in = conn.getInputStream();
+            FileOutputStream fo = new FileOutputStream(out);
+            byte[] buf = new byte[8192];
+            int n;
+            while ((n = in.read(buf)) > 0) fo.write(buf, 0, n);
+            fo.close();
+            in.close();
+            return out;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+    }
+
+    private void installApk(File f) {
+        try {
+            Uri uri = Uri.parse("content://" + getPackageName() + ".updates/update.apk");
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(uri, "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+        } catch (Exception e) {
+            deliver("window.onUpdateStatus", "Could not open installer: " + e.getMessage());
         }
     }
 

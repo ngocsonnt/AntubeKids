@@ -225,7 +225,33 @@ private static final String APP_HOST = "appassets.androidplatform.net";
   Bên JS quy về CSS px (`px / density`), set kích thước `html/body/#player`, và gọi
   **`player.setSize(w, h)`** của YouTube để player phủ kín.
 
-### 8.4. Bài học chung
+### 8.4. Tự cập nhật từ GitHub (không phải chép đè file)
+App cài ngoài **không tự cài im lặng được** (Android luôn yêu cầu người dùng xác nhận ở bước
+cuối). Nhưng có thể tự động hoá phần còn lại:
+1. Đặt một file `update.json` trong repo (tải qua raw GitHub):
+   `{ "versionCode": 7, "versionName": "1.6", "apkUrl": "…/apk/AntubeKids-latest.apk", "notes": "…" }`
+2. App khi khởi động gọi `Native.checkUpdate()` → tải `update.json`, so `versionCode` với
+   bản đang cài. Nếu mới hơn → hiện banner.
+3. Khi bấm cập nhật: `Native.startUpdate(apkUrl)` → tải APK về `filesDir`, rồi mở trình cài đặt.
+   - Cần quyền `REQUEST_INSTALL_PACKAGES`; nếu chưa có, mở `Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES`.
+   - File APK phải đưa cho trình cài qua **content:// URI** (file:// bị chặn từ Android 7). Để
+     khỏi cần AndroidX FileProvider, tự viết một `ContentProvider` nhỏ trả `ParcelFileDescriptor`:
+     ```java
+     public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+         return ParcelFileDescriptor.open(new File(getContext().getFilesDir(), "update.apk"),
+                                          ParcelFileDescriptor.MODE_READ_ONLY);
+     }
+     ```
+     Mở installer: `ACTION_VIEW` + setDataAndType(uri, "application/vnd.android.package-archive")
+     + `FLAG_GRANT_READ_URI_PERMISSION`.
+4. **Quan trọng:** APK mới phải ký **cùng khóa** với bản đang cài, nếu không Android báo
+   "App not installed". Build debug cùng máy thì chung khóa debug; phát hành rộng nên dùng
+   khóa release riêng.
+
+Quy trình phát hành (xem `release.sh`): bump `versionCode` → build → copy vào
+`apk/AntubeKids-latest.apk` → ghi `update.json` → commit & push.
+
+### 8.5. Bài học chung
 - Phần tử HTML đè lên `<iframe>` video (nút Back, thanh điều khiển) **không** làm video đen —
   nên overlay/điều khiển tùy biến là an toàn.
 - Tăng `versionCode` mỗi lần build để máy cập nhật đè bản cũ.

@@ -19,6 +19,8 @@ that fetches the sheet (done natively to avoid WebView CORS).
 - 📐 Reads the projector's **real resolution** and sizes the player to fill the screen
 - 🔒 Bundles Google Trust Services root CAs (helps older projectors with stale CA stores)
 - ⚙️ In-app settings to change the sheet link, with the app version shown
+- ⬆️ **Self-update from GitHub**: checks `update.json` on launch, shows a banner, and
+  downloads + installs the new APK (one confirmation tap — Android requires it for sideloaded apps)
 
 ## Google Sheet format
 
@@ -45,6 +47,17 @@ Output: `app/build/outputs/apk/debug/app-debug.apk`. A prebuilt debug APK is in 
 
 Install on the projector via `adb install -r app-debug.apk` or by copying the APK and
 opening it with the device's file manager (enable "install from unknown sources").
+
+## Releasing an update (so installed apps auto-update)
+
+1. Bump `versionCode` (and `versionName`) in `app/build.gradle`.
+2. Run `./release.sh "what changed"` — it builds the APK, copies it to
+   `apk/AntubeKids-latest.apk`, writes `update.json`, then commits & pushes.
+3. Installed apps detect the new `versionCode` on next launch and offer to update.
+
+> The downloaded APK must be signed with the **same key** as the installed app, or Android
+> rejects the update ("App not installed"). Debug builds from the same machine share the
+> debug keystore. For wider distribution, switch to a dedicated release keystore.
 
 ## Tech notes
 

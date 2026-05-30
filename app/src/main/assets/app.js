@@ -42,6 +42,10 @@
   var sheetInput = $("sheet-input");
   var settingsMsg = $("settings-msg");
   var versionEl = $("app-version");
+  var updateBanner = $("update-banner");
+  var updateText = $("update-text");
+  var updateBtn = $("update-btn");
+  var updateInfo = null;
 
   var hasNative = typeof window.Native !== "undefined";
 
@@ -503,6 +507,8 @@
       if (hasNative) { try { ver = window.Native.getAppVersion() || ""; } catch (e) {} }
       versionEl.textContent = ver ? ("Version " + ver) : "";
     }
+    refreshUpdateLine();
+    checkUpdate();
     settingsScreen.classList.add("active");
     setTimeout(function () { sheetInput.focus(); }, 50);
   }
@@ -524,6 +530,39 @@
 
   // Exposed for the Menu key (from MainActivity)
   window.appOpenSettings = function () { openSettings(""); };
+
+  // =======================================================================
+  // Self-update (reads update.json on GitHub; downloads + installs the APK)
+  // =======================================================================
+  function checkUpdate() {
+    if (!hasNative) return;
+    try { window.Native.checkUpdate(); } catch (e) {}
+  }
+
+  window.onUpdateInfo = function (json) {
+    try { updateInfo = JSON.parse(json); } catch (e) { return; }
+    updateBanner.style.display = updateInfo.available ? "block" : "none";
+    if (updateInfo.available) {
+      updateBanner.textContent = "🔔 New version " + updateInfo.latest + " available — tap to update";
+    }
+    refreshUpdateLine();
+  };
+  window.onUpdateError = function () {
+    updateText.textContent = "Couldn't check for updates.";
+    updateBtn.style.display = "none";
+  };
+  window.onUpdateStatus = function (msg) { updateText.textContent = msg || ""; };
+
+  function refreshUpdateLine() {
+    if (!updateInfo) { updateText.textContent = "Checking for updates…"; updateBtn.style.display = "none"; return; }
+    if (updateInfo.available) {
+      updateText.textContent = "New version " + updateInfo.latest + " is available.";
+      updateBtn.style.display = "";
+    } else {
+      updateText.textContent = "You're on the latest version (" + (updateInfo.current || "") + ").";
+      updateBtn.style.display = "none";
+    }
+  }
 
   // =======================================================================
   // Back handling (called from MainActivity.onBackPressed)
@@ -630,6 +669,13 @@
   $("back-btn").addEventListener("click", returnToGrid);
   $("settings-save").addEventListener("click", saveSettings);
   $("settings-cancel").addEventListener("click", closeSettings);
+  updateBtn.addEventListener("click", function () {
+    if (updateInfo && updateInfo.apkUrl) {
+      updateText.textContent = "Starting update…";
+      try { window.Native.startUpdate(updateInfo.apkUrl); } catch (e) {}
+    }
+  });
+  updateBanner.addEventListener("click", function () { openSettings(""); });
 
   // Keep header zone state in sync when navigating by touch/focus
   reloadBtn.addEventListener("focus", function () { zone = "header"; headerSel = 0; });
@@ -640,5 +686,6 @@
   // =======================================================================
   loadYouTubeApi();
   loadVideos();
+  checkUpdate();   // check GitHub for a newer build on launch
 
 })();
