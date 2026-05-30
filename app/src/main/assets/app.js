@@ -17,6 +17,7 @@
   var ytApiReady = false;
   var pendingPlay = null;   // index queued before the API finished loading
   var isPlaying = false;    // current play/pause state (for remote toggle)
+  var progressTimer = null; // ticks while a video plays to update time/progress
   var zone = "grid";        // navigation focus: "grid", "header" or "sheets"
   var headerSel = 1;        // header buttons: 0 = reload (🔄), 1 = settings (⚙️)
   var screenW = 0, screenH = 0; // logical (CSS px) size from the projector's real resolution
@@ -37,6 +38,8 @@
   var sheetListEl = $("sheet-list");
   var statusEl = $("status");
   var nowPlayingEl = $("now-playing");
+  var timeEl = $("time");
+  var progressFill = $("progress-fill");
   var reloadBtn = $("reload-btn");
   var settingsBtn = $("settings-btn");
   var sheetInput = $("sheet-input");
@@ -428,6 +431,7 @@
     showScreen("player");
     nowPlayingEl.textContent = videos[index].title;
     isPlaying = true;
+    startProgress();
 
     if (!ytApiReady) { pendingPlay = index; loadYouTubeApi(); return; }
 
@@ -476,6 +480,32 @@
     var t = player.getCurrentTime() + delta;
     if (t < 0) t = 0;
     try { player.seekTo(t, true); } catch (e) {}
+    updateProgress();
+  }
+
+  // ----- Always-on time + progress bar -----
+  function fmtTime(t) {
+    t = Math.max(0, Math.floor(t || 0));
+    var h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = t % 60;
+    var mm = (h > 0 && m < 10 ? "0" : "") + m;
+    var ss = (s < 10 ? "0" : "") + s;
+    return (h > 0 ? h + ":" : "") + mm + ":" + ss;
+  }
+  function updateProgress() {
+    if (!player || !player.getCurrentTime || !player.getDuration) return;
+    var cur = player.getCurrentTime() || 0;
+    var dur = player.getDuration() || 0;
+    timeEl.textContent = fmtTime(cur) + " / " + fmtTime(dur);
+    progressFill.style.width = (dur > 0 ? Math.min(100, cur / dur * 100) : 0) + "%";
+  }
+  function startProgress() {
+    stopProgress();
+    timeEl.textContent = "0:00 / 0:00";
+    progressFill.style.width = "0%";
+    progressTimer = setInterval(updateProgress, 500);
+  }
+  function stopProgress() {
+    if (progressTimer) { clearInterval(progressTimer); progressTimer = null; }
   }
 
   function onPlayerError() {
@@ -490,6 +520,7 @@
 
   function returnToGrid() {
     if (player) { try { player.stopVideo(); } catch (e) {} }
+    stopProgress();
     current = -1;
     showScreen("grid");
     zone = "grid";

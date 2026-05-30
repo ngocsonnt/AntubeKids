@@ -1,6 +1,6 @@
 {
-  "versionCode": 7,
-  "versionName": "1.6",
+  "versionCode": 8,
+  "versionName": "1.7",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Self-update support"
+  "notes": "Always-on time + progress bar while playing"
 }
