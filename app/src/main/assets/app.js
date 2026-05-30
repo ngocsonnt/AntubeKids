@@ -596,6 +596,19 @@
     if (gridScreen.classList.contains("active")) { zone = "grid"; updateSelection(); }
   }
 
+  // Focusable controls inside the Settings dialog, in navigation order.
+  function settingsFocusables() {
+    var list = [sheetInput, $("settings-save"), $("settings-cancel")];
+    if (updateBtn && updateBtn.style.display !== "none") list.push(updateBtn);
+    return list;
+  }
+  function moveSettingsFocus(dir) {
+    var list = settingsFocusables();
+    var idx = list.indexOf(document.activeElement);
+    idx = idx < 0 ? 0 : (idx + dir + list.length) % list.length;
+    list[idx].focus();
+  }
+
   function saveSettings() {
     var val = sheetInput.value.trim();
     if (!val) { settingsMsg.textContent = "Please paste the sheet link."; return; }
@@ -666,10 +679,24 @@
   document.addEventListener("keydown", function (ev) {
     var key = ev.key;
 
-    // Settings overlay: let typing happen, only intercept Enter/Escape
+    // Settings overlay: keep focus INSIDE the dialog. Arrows cycle the controls,
+    // Enter/OK activates the focused one, only Back/Escape closes the dialog.
     if (settingsScreen.classList.contains("active")) {
-      if (key === "Enter") { ev.preventDefault(); saveSettings(); }
-      else if (key === "Escape" || key === "GoBack") { ev.preventDefault(); closeSettings(); }
+      switch (key) {
+        case "Escape": case "GoBack":
+          ev.preventDefault(); closeSettings(); break;
+        case "ArrowDown": case "ArrowRight":
+          ev.preventDefault(); moveSettingsFocus(1); break;
+        case "ArrowUp": case "ArrowLeft":
+          ev.preventDefault(); moveSettingsFocus(-1); break;
+        case "Enter":
+          ev.preventDefault();
+          var el = document.activeElement;
+          if (el && el.tagName === "BUTTON") el.click();
+          else saveSettings();
+          break;
+        // any other key (letters, Backspace…) passes through to the text field
+      }
       return;
     }
 

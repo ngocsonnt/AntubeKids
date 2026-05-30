@@ -1,6 +1,6 @@
 {
-  "versionCode": 9,
-  "versionName": "1.8",
+  "versionCode": 10,
+  "versionName": "1.9",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Show each clip's duration on the grid thumbnails"
+  "notes": "Keep D-pad focus inside Settings; only Back closes it"
 }
