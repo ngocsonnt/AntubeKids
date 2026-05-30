@@ -103,6 +103,7 @@ html, body {
     transform: scale(1.05);
     box-shadow: 0 0 4vh rgba(255,213,79,.5);
 }
+.thumb-wrap { position: relative; display: block; }
 .tile .thumb {
     width: 100%;
     aspect-ratio: 16 / 9;
@@ -110,6 +111,19 @@ html, body {
     display: block;
     background: #0c0f17;
 }
+.tile .dur {
+    position: absolute;
+    right: 0.6vw;
+    bottom: 0.8vh;
+    background: rgba(0,0,0,.82);
+    color: #fff;
+    font-size: 2vh;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0.5vh 0.9vw;
+    border-radius: 0.6vh;
+}
+.tile .dur:empty { display: none; }
 .tile .label {
     display: flex;
     align-items: center;

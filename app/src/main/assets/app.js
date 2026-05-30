@@ -22,6 +22,9 @@
   var headerSel = 1;        // header buttons: 0 = reload (🔄), 1 = settings (⚙️)
   var screenW = 0, screenH = 0; // logical (CSS px) size from the projector's real resolution
 
+  var durations = {};       // { videoId: seconds } — cached clip durations
+  var durQueue = [];        // ids waiting to have their duration fetched
+  var durBusy = false;      // one duration fetch at a time (keeps it light)
   var spreadsheetId = "";   // current spreadsheet id
   var sheets = [];          // [{ name, gid }] tabs in the spreadsheet
   var currentGid = null;    // gid of the tab currently shown
@@ -275,10 +278,18 @@
         tile.tabIndex = 0;
         tile.setAttribute("data-index", i);
 
+        var wrap = document.createElement("div");
+        wrap.className = "thumb-wrap";
         var img = document.createElement("img");
         img.className = "thumb";
         img.src = "https://i.ytimg.com/vi/" + v.id + "/hqdefault.jpg";
         img.onerror = function () { img.src = "https://img.youtube.com/vi/" + v.id + "/0.jpg"; };
+        var dur = document.createElement("span");
+        dur.className = "dur";
+        dur.setAttribute("data-vid", v.id);
+        if (durations[v.id]) dur.textContent = fmtTime(durations[v.id]);
+        wrap.appendChild(img);
+        wrap.appendChild(dur);
 
         var label = document.createElement("div");
         label.className = "label";
@@ -291,7 +302,7 @@
         label.appendChild(num);
         label.appendChild(txt);
 
-        tile.appendChild(img);
+        tile.appendChild(wrap);
         tile.appendChild(label);
         tile.addEventListener("click", function () { selected = i; play(i); });
         gridEl.appendChild(tile);
@@ -299,7 +310,44 @@
     }
     if (selected >= videos.length) selected = 0;
     updateSelection();
+    queueDurations();
   }
+
+  // ----- Clip durations (scraped natively, cached forever per video id) -----
+  function loadDurations() {
+    try { durations = JSON.parse(localStorage.getItem("durations") || "{}"); }
+    catch (e) { durations = {}; }
+  }
+  function saveDurations() {
+    try { localStorage.setItem("durations", JSON.stringify(durations)); } catch (e) {}
+  }
+  function queueDurations() {
+    if (!hasNative) return;             // browser preview can't (CORS)
+    var seen = {};
+    durQueue = [];
+    for (var i = 0; i < videos.length; i++) {
+      var id = videos[i].id;
+      if (!durations[id] && !seen[id]) { seen[id] = 1; durQueue.push(id); }
+    }
+    pumpDurations();
+  }
+  function pumpDurations() {
+    if (durBusy || !durQueue.length || !hasNative) return;
+    durBusy = true;
+    var id = durQueue.shift();
+    try { window.Native.fetchDuration(id); }
+    catch (e) { durBusy = false; }
+  }
+  window.onDuration = function (id, secs) {
+    durBusy = false;
+    if (secs && secs > 0) {
+      durations[id] = secs;
+      saveDurations();
+      var els = gridEl.querySelectorAll('.dur[data-vid="' + id + '"]');
+      for (var i = 0; i < els.length; i++) els[i].textContent = fmtTime(secs);
+    }
+    pumpDurations();
+  };
 
   function tiles() { return gridEl.querySelectorAll(".tile"); }
 
@@ -715,6 +763,7 @@
   // =======================================================================
   // Start
   // =======================================================================
+  loadDurations();
   loadYouTubeApi();
   loadVideos();
   checkUpdate();   // check GitHub for a newer build on launch
