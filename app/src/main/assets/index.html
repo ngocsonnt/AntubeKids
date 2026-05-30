@@ -52,12 +52,27 @@
                 <button id="settings-save" class="primary-btn">Save &amp; Load</button>
                 <button id="settings-cancel" class="ghost-btn">Cancel</button>
             </div>
+            <button id="phone-btn" class="ghost-btn phone-entry">📱 Enter link from phone (Wi-Fi)</button>
             <p id="settings-msg" class="settings-msg"></p>
             <div id="update-row" class="update-row">
                 <span id="update-text" class="update-text">Checking for updates…</span>
                 <button id="update-btn" class="primary-btn" style="display:none">Update now</button>
             </div>
             <p id="app-version" class="version"></p>
+        </div>
+    </div>
+
+    <!-- ============ ENTER FROM PHONE (Wi-Fi) ============ -->
+    <div id="phone-screen" class="screen overlay">
+        <div class="settings-box">
+            <h2>📱 Enter link from phone</h2>
+            <p class="hint">On a phone connected to the <b>same Wi-Fi</b>, open this address in a browser:</p>
+            <p id="phone-url" class="phone-url">…</p>
+            <p class="hint">Paste your Google Sheet link there and tap <b>Send</b>. The projector saves it automatically — no typing on the remote.</p>
+            <p id="phone-status" class="settings-msg"></p>
+            <div class="settings-actions">
+                <button id="phone-close" class="primary-btn">Done</button>
+            </div>
         </div>
     </div>
 

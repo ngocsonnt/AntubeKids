@@ -29,8 +29,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
 
 /**
  * Kiosk-style host for the kids' video player.
@@ -51,6 +55,7 @@ public class MainActivity extends Activity {
     private WebView webView;
     private SharedPreferences prefs;
     private FrameLayout root;
+    private ConfigServer configServer;
 
     // YouTube native-fullscreen support
     private View customView;
@@ -222,6 +227,12 @@ public class MainActivity extends Activity {
         hideSystemUi();
     }
 
+    @Override
+    protected void onDestroy() {
+        stopConfigServerInternal();
+        super.onDestroy();
+    }
+
     /** Bridge exposed to JavaScript as window.Native */
     private class Bridge {
 
@@ -292,6 +303,39 @@ public class MainActivity extends Activity {
             return currentVersionName();
         }
 
+        // Start a tiny LAN web server so a phone can submit the sheet link.
+        // Returns the address to open (e.g. http://192.168.1.5:8080), or "".
+        @JavascriptInterface
+        public String startConfigServer() {
+            stopConfigServerInternal();
+            String ip = getLocalIp();
+            if (ip == null) return "";
+            int[] ports = { 8080, 8088, 8181, 8888 };
+            for (int p : ports) {
+                try {
+                    ConfigServer srv = new ConfigServer(p, prefs.getString("sheetUrl", ""), url -> {
+                        prefs.edit().putString("sheetUrl", url.trim()).apply();
+                        runOnUiThread(() -> {
+                            if (webView != null) {
+                                webView.evaluateJavascript(
+                                    "window.onConfigReceived && window.onConfigReceived("
+                                        + JSONObject.quote(url.trim()) + ")", null);
+                            }
+                        });
+                    });
+                    srv.start();
+                    configServer = srv;
+                    return "http://" + ip + ":" + p;
+                } catch (Exception e) { /* port busy -> try next */ }
+            }
+            return "";
+        }
+
+        @JavascriptInterface
+        public void stopConfigServer() {
+            stopConfigServerInternal();
+        }
+
         // Check GitHub for a newer build; report back to window.onUpdateInfo(json).
         @JavascriptInterface
         public void checkUpdate() {
@@ -341,6 +385,25 @@ public class MainActivity extends Activity {
     private String currentVersionName() {
         try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
         catch (Exception e) { return ""; }
+    }
+
+    private void stopConfigServerInternal() {
+        if (configServer != null) { configServer.stop(); configServer = null; }
+    }
+
+    /** First site-local IPv4 of an active interface (Wi-Fi or Ethernet). */
+    private String getLocalIp() {
+        try {
+            for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                if (!ni.isUp() || ni.isLoopback()) continue;
+                for (InetAddress a : Collections.list(ni.getInetAddresses())) {
+                    if (a instanceof Inet4Address && a.isSiteLocalAddress()) {
+                        return a.getHostAddress();
+                    }
+                }
+            }
+        } catch (Exception e) { /* ignore */ }
+        return null;
     }
 
     private boolean canInstall() {

@@ -249,6 +249,15 @@ html, body {
 .primary-btn:focus, .ghost-btn:focus { outline: none; border-color: #ffd54f; }
 .settings-msg { margin-top: 2vh; font-size: 2.4vh; color: #ff8a80; min-height: 3vh; }
 .version { margin-top: 2vh; font-size: 2vh; color: #6f7f99; text-align: right; }
+.phone-entry { width: 100%; margin-top: 1.6vh; }
+.phone-url {
+    font-size: 4vh;
+    font-weight: 800;
+    color: #ffd54f;
+    text-align: center;
+    margin: 1.5vh 0;
+    word-break: break-all;
+}
 .update-row { display: flex; align-items: center; gap: 2vw; margin-top: 2.5vh; }
 .update-text { font-size: 2.4vh; color: #b9c7de; flex: 1; }
 

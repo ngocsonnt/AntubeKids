@@ -35,6 +35,9 @@
   var gridScreen = $("grid-screen");
   var playerScreen = $("player-screen");
   var settingsScreen = $("settings-screen");
+  var phoneScreen = $("phone-screen");
+  var phoneUrlEl = $("phone-url");
+  var phoneStatusEl = $("phone-status");
   var mainEl = $("main");
   var gridEl = $("grid");
   var sheetPanel = $("sheet-panel");
@@ -598,10 +601,42 @@
 
   // Focusable controls inside the Settings dialog, in navigation order.
   function settingsFocusables() {
-    var list = [sheetInput, $("settings-save"), $("settings-cancel")];
+    var list = [sheetInput, $("settings-save"), $("settings-cancel"), $("phone-btn")];
     if (updateBtn && updateBtn.style.display !== "none") list.push(updateBtn);
     return list;
   }
+
+  // ----- Enter link from phone (Wi-Fi mini web server) -----
+  function openPhone() {
+    if (!hasNative) { phoneStatusEl.textContent = ""; }
+    var url = "";
+    if (hasNative) { try { url = window.Native.startConfigServer() || ""; } catch (e) {} }
+    if (!url) {
+      phoneUrlEl.textContent = "—";
+      phoneStatusEl.textContent = "No Wi-Fi connection found. Connect the projector to Wi-Fi and try again.";
+    } else {
+      phoneUrlEl.textContent = url;
+      phoneStatusEl.textContent = "Waiting for your phone…";
+    }
+    phoneScreen.classList.add("active");
+    setTimeout(function () { $("phone-close").focus(); }, 50);
+  }
+  function closePhone() {
+    if (hasNative) { try { window.Native.stopConfigServer(); } catch (e) {} }
+    phoneScreen.classList.remove("active");
+    // settings overlay is still underneath; restore focus there
+    setTimeout(function () { $("phone-btn").focus(); }, 50);
+  }
+  window.onConfigReceived = function (url) {
+    phoneStatusEl.textContent = "✅ Received! Loading…";
+    sheetInput.value = url;
+    saveUrl(url);
+    currentGid = null;
+    sheets = [];
+    renderSheetPanel();
+    loadVideos();
+    setTimeout(function () { closePhone(); closeSettings(); }, 1500);
+  };
   function moveSettingsFocus(dir) {
     var list = settingsFocusables();
     var idx = list.indexOf(document.activeElement);
@@ -661,6 +696,7 @@
   // Returns true if handled by the web layer.
   // =======================================================================
   window.appHandleBack = function () {
+    if (phoneScreen.classList.contains("active")) { closePhone(); return true; }
     if (settingsScreen.classList.contains("active")) { closeSettings(); return true; }
     if (playerScreen.classList.contains("active")) { returnToGrid(); return true; }
     if (zone !== "grid") { setZoneGrid(); return true; }
@@ -678,6 +714,14 @@
   // =======================================================================
   document.addEventListener("keydown", function (ev) {
     var key = ev.key;
+
+    // "Enter from phone" overlay: only Back/Done/OK closes it
+    if (phoneScreen.classList.contains("active")) {
+      if (key === "Escape" || key === "GoBack" || key === "Enter" || key === " ") {
+        ev.preventDefault(); closePhone();
+      }
+      return;
+    }
 
     // Settings overlay: keep focus INSIDE the dialog. Arrows cycle the controls,
     // Enter/OK activates the focused one, only Back/Escape closes the dialog.
@@ -782,6 +826,8 @@
     }
   });
   updateBanner.addEventListener("click", function () { openSettings(""); });
+  $("phone-btn").addEventListener("click", openPhone);
+  $("phone-close").addEventListener("click", closePhone);
 
   // Keep header zone state in sync when navigating by touch/focus
   reloadBtn.addEventListener("focus", function () { zone = "header"; headerSel = 0; });

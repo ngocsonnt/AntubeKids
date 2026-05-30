@@ -20,6 +20,9 @@ that fetches the sheet (done natively to avoid WebView CORS).
 - 📐 Reads the projector's **real resolution** and sizes the player to fill the screen
 - 🔒 Bundles Google Trust Services root CAs (helps older projectors with stale CA stores)
 - ⚙️ In-app settings to change the sheet link, with the app version shown
+- 📱 **Enter the link from your phone over Wi-Fi**: the projector runs a tiny on-demand
+  web server and shows an address (e.g. `http://192.168.1.5:8080`); open it on a phone on
+  the same Wi-Fi, paste the link, tap Send — no typing on the remote
 - ⬆️ **Self-update from GitHub**: checks `update.json` on launch, shows a banner, and
   downloads + installs the new APK (one confirmation tap — Android requires it for sideloaded apps)
 

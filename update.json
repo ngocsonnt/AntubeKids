@@ -1,6 +1,6 @@
 {
-  "versionCode": 10,
-  "versionName": "1.9",
+  "versionCode": 11,
+  "versionName": "2.0",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Keep D-pad focus inside Settings; only Back closes it"
+  "notes": "Enter the sheet link from a phone over Wi-Fi (on-demand web server)"
 }
