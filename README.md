@@ -13,7 +13,8 @@ that fetches the sheet (done natively to avoid WebView CORS).
 - 🎬 Big-thumbnail grid, controllable by **touch and remote (D-pad)**
 - 📄 Video list from a **public Google Sheet** (column A = title, column B = YouTube link)
 - 🗂️ If the spreadsheet has multiple tabs, they appear as **playlists** on the right
-- ▶️ Custom player controls: Previous · −10s · Play/Pause · +10s · Next
+- ▶️ Uses YouTube's native player controls (timeline/scrubber); remote keys also drive
+  the player (OK = play/pause, ◀▶ = seek 10s, ▲▼ = previous/next video)
 - 🔁 Auto-advances to the next video; videos that block embedding are skipped
 - 📐 Reads the projector's **real resolution** and sizes the player to fill the screen
 - 🔒 Bundles Google Trust Services root CAs (helps older projectors with stale CA stores)

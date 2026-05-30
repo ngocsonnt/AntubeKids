@@ -148,7 +148,9 @@ runOnUiThread(() -> webView.evaluateJavascript(js, null));
 - **Điều khiển bằng cả chạm lẫn remote (D-pad):** tự xử lý phím mũi tên qua `keydown`, với
   các "vùng focus" (zone): `grid` ↔ `header` (nút 🔄/⚙️) ↔ `sheets` (panel playlist).
 - **Trình phát:** tạo `YT.Player`, tự phát video kế tiếp khi `ENDED`, bỏ qua video chặn nhúng
-  (`onError`). Thanh điều khiển riêng: ⏮ / ⏪ / ⏸▶ / ⏩ / ⏭, tự ẩn sau vài giây.
+  (`onError`). Dùng **thanh điều khiển gốc của YouTube** (`controls:1`, có thanh thời gian);
+  phím remote vẫn điều khiển qua IFrame API (OK = play/pause, ◀▶ = seek 10s, ▲▼ = chuyển video).
+  Lưu ý: KHÔNG phủ overlay trong suốt lên iframe, nếu không sẽ chặn thao tác lên thanh YouTube.
 - **Cache:** lưu danh sách vào `localStorage` để mất mạng tạm vẫn xem được.
 
 ---

@@ -16,8 +16,7 @@
   var player = null;        // YT.Player instance
   var ytApiReady = false;
   var pendingPlay = null;   // index queued before the API finished loading
-  var isPlaying = false;    // current play/pause state
-  var hideTimer = null;     // auto-hide timer for the controls bar
+  var isPlaying = false;    // current play/pause state (for remote toggle)
   var zone = "grid";        // navigation focus: "grid", "header" or "sheets"
   var headerSel = 1;        // header buttons: 0 = reload (🔄), 1 = settings (⚙️)
   var screenW = 0, screenH = 0; // logical (CSS px) size from the projector's real resolution
@@ -38,8 +37,6 @@
   var sheetListEl = $("sheet-list");
   var statusEl = $("status");
   var nowPlayingEl = $("now-playing");
-  var controlsEl = $("controls");
-  var playPauseBtn = $("play-pause");
   var reloadBtn = $("reload-btn");
   var settingsBtn = $("settings-btn");
   var sheetInput = $("sheet-input");
@@ -408,7 +405,7 @@
     screenH = Math.round(hPx / density);
     var css =
       "html,body{width:" + screenW + "px;height:" + screenH + "px;overflow:hidden;}" +
-      "#player-screen,#player,#player iframe,#tap-layer{" +
+      "#player-screen,#player,#player iframe{" +
       "width:" + screenW + "px!important;height:" + screenH + "px!important;left:0!important;top:0!important;}";
     var el = document.getElementById("screen-fit");
     if (!el) { el = document.createElement("style"); el.id = "screen-fit"; document.head.appendChild(el); }
@@ -427,14 +424,12 @@
     showScreen("player");
     nowPlayingEl.textContent = videos[index].title;
     isPlaying = true;
-    playPauseBtn.textContent = "⏸";
-    showControls();
 
     if (!ytApiReady) { pendingPlay = index; loadYouTubeApi(); return; }
 
     var vars = {
       autoplay: 1, rel: 0, modestbranding: 1, fs: 1,
-      playsinline: 1, controls: 0, iv_load_policy: 3,
+      playsinline: 1, controls: 1, iv_load_policy: 3,
       origin: window.location.origin,
       widget_referrer: window.location.href
     };
@@ -458,45 +453,25 @@
   }
 
   function onPlayerState(e) {
-    if (e.data === YT.PlayerState.PLAYING) {
-      isPlaying = true; playPauseBtn.textContent = "⏸";
-    } else if (e.data === YT.PlayerState.PAUSED) {
-      isPlaying = false; playPauseBtn.textContent = "▶";
-    }
+    if (e.data === YT.PlayerState.PLAYING) isPlaying = true;
+    else if (e.data === YT.PlayerState.PAUSED) isPlaying = false;
     if (e.data === YT.PlayerState.ENDED) {
       if (current + 1 < videos.length) play(current + 1);
       else returnToGrid();
     }
   }
 
-  // ----- Custom player controls -----
-  function showControls() {
-    controlsEl.classList.remove("hidden");
-    if (hideTimer) clearTimeout(hideTimer);
-    hideTimer = setTimeout(function () { controlsEl.classList.add("hidden"); }, 4500);
-  }
+  // ----- Remote control helpers (YouTube shows its own on-screen controls) -----
   function togglePlay() {
     if (!player) return;
     if (isPlaying) { try { player.pauseVideo(); } catch (e) {} }
     else { try { player.playVideo(); } catch (e) {} }
-    showControls();
   }
   function seek(delta) {
     if (!player || !player.getCurrentTime) return;
     var t = player.getCurrentTime() + delta;
     if (t < 0) t = 0;
     try { player.seekTo(t, true); } catch (e) {}
-    showControls();
-  }
-  function doAction(act) {
-    switch (act) {
-      case "prev": if (current - 1 >= 0) play(current - 1); break;
-      case "next": if (current + 1 < videos.length) play(current + 1); break;
-      case "back10": seek(-10); break;
-      case "fwd10": seek(10); break;
-      case "playpause": togglePlay(); break;
-    }
-    showControls();
   }
 
   function onPlayerError() {
@@ -511,7 +486,6 @@
 
   function returnToGrid() {
     if (player) { try { player.stopVideo(); } catch (e) {} }
-    if (hideTimer) { clearTimeout(hideTimer); hideTimer = null; }
     current = -1;
     showScreen("grid");
     zone = "grid";
@@ -581,9 +555,8 @@
       return;
     }
 
-    // Player screen
+    // Player screen (YouTube shows its own controls; remote keys drive the API)
     if (playerScreen.classList.contains("active")) {
-      showControls();
       switch (key) {
         case "Escape": case "Backspace": case "GoBack":
           ev.preventDefault(); returnToGrid(); break;
@@ -592,10 +565,10 @@
           ev.preventDefault(); togglePlay(); break;
         case "ArrowLeft":  ev.preventDefault(); seek(-10); break;
         case "ArrowRight": ev.preventDefault(); seek(10); break;
-        case "ArrowUp":    ev.preventDefault(); doAction("prev"); break;
-        case "ArrowDown":  ev.preventDefault(); doAction("next"); break;
-        case "MediaTrackNext":     doAction("next"); break;
-        case "MediaTrackPrevious": doAction("prev"); break;
+        case "ArrowUp": case "MediaTrackPrevious":
+          ev.preventDefault(); if (current - 1 >= 0) play(current - 1); break;
+        case "ArrowDown": case "MediaTrackNext":
+          ev.preventDefault(); if (current + 1 < videos.length) play(current + 1); break;
       }
       return;
     }
@@ -658,22 +631,9 @@
   $("settings-save").addEventListener("click", saveSettings);
   $("settings-cancel").addEventListener("click", closeSettings);
 
-  // Player control bar
-  var ctrlBtns = controlsEl.querySelectorAll(".ctrl-btn");
-  for (var ci = 0; ci < ctrlBtns.length; ci++) {
-    (function (b) {
-      b.addEventListener("click", function () { doAction(b.getAttribute("data-act")); });
-    })(ctrlBtns[ci]);
-  }
   // Keep header zone state in sync when navigating by touch/focus
   reloadBtn.addEventListener("focus", function () { zone = "header"; headerSel = 0; });
   settingsBtn.addEventListener("focus", function () { zone = "header"; headerSel = 1; });
-
-  // Touch on the video: reveal controls, tap again to play/pause
-  $("tap-layer").addEventListener("click", function () {
-    if (controlsEl.classList.contains("hidden")) showControls();
-    else togglePlay();
-  });
 
   // =======================================================================
   // Start
