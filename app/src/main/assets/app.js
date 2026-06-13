@@ -17,6 +17,8 @@
   var ytApiReady = false;
   var pendingPlay = null;   // index queued before the API finished loading
   var isPlaying = false;    // current play/pause state (for remote toggle)
+  var captionsOn = false;   // show YouTube captions (CC) by default
+  var playerCcOn = false;   // the cc state the current player was built with
   var progressTimer = null; // ticks while a video plays to update time/progress
   var zone = "grid";        // navigation focus: "grid", "header" or "sheets"
   var headerSel = 1;        // header buttons: 0 = reload (🔄), 1 = settings (⚙️)
@@ -489,9 +491,15 @@
     var vars = {
       autoplay: 1, rel: 0, modestbranding: 1, fs: 1,
       playsinline: 1, controls: 1, iv_load_policy: 3,
+      cc_load_policy: captionsOn ? 1 : 0,
       origin: window.location.origin,
       widget_referrer: window.location.href
     };
+    // The caption setting is an embed param, so rebuild the player if it changed.
+    if (player && playerCcOn !== captionsOn) {
+      try { player.destroy(); } catch (e) {}
+      player = null;
+    }
     if (!player) {
       player = new YT.Player("player", {
         width: "100%", height: "100%",
@@ -500,12 +508,14 @@
         events: {
           onReady: function (e) {
             if (screenW) { try { e.target.setSize(screenW, screenH); } catch (er) {} }
+            if (captionsOn) { try { e.target.setOption("captions", "reload", true); } catch (er) {} }
             e.target.playVideo();
           },
           onStateChange: onPlayerState,
           onError: onPlayerError
         }
       });
+      playerCcOn = captionsOn;
     } else {
       player.loadVideoById(videos[index].id);
     }
@@ -601,9 +611,26 @@
 
   // Focusable controls inside the Settings dialog, in navigation order.
   function settingsFocusables() {
-    var list = [sheetInput, $("settings-save"), $("settings-cancel"), $("phone-btn")];
+    var list = [sheetInput, $("settings-save"), $("settings-cancel"), $("cc-btn"), $("phone-btn")];
     if (updateBtn && updateBtn.style.display !== "none") list.push(updateBtn);
     return list;
+  }
+
+  // ----- Captions (CC) toggle -----
+  function loadCc() { captionsOn = localStorage.getItem("cc") === "1"; updateCcLabel(); }
+  function updateCcLabel() {
+    var b = $("cc-btn");
+    if (b) b.textContent = "Captions (CC): " + (captionsOn ? "On" : "Off");
+  }
+  function toggleCc() {
+    captionsOn = !captionsOn;
+    localStorage.setItem("cc", captionsOn ? "1" : "0");
+    updateCcLabel();
+    if (player) {
+      try { player.destroy(); } catch (e) {}
+      player = null;
+      if (playerScreen.classList.contains("active") && current >= 0) play(current);
+    }
   }
 
   // ----- Enter link from phone (Wi-Fi mini web server) -----
@@ -828,6 +855,7 @@
   updateBanner.addEventListener("click", function () { openSettings(""); });
   $("phone-btn").addEventListener("click", openPhone);
   $("phone-close").addEventListener("click", closePhone);
+  $("cc-btn").addEventListener("click", toggleCc);
 
   // Keep header zone state in sync when navigating by touch/focus
   reloadBtn.addEventListener("focus", function () { zone = "header"; headerSel = 0; });
@@ -837,6 +865,7 @@
   // Start
   // =======================================================================
   loadDurations();
+  loadCc();
   loadYouTubeApi();
   loadVideos();
   checkUpdate();   // check GitHub for a newer build on launch

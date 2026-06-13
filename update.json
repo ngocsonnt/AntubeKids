@@ -1,6 +1,6 @@
 {
-  "versionCode": 11,
-  "versionName": "2.0",
+  "versionCode": 12,
+  "versionName": "2.1",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Enter the sheet link from a phone over Wi-Fi (on-demand web server)"
+  "notes": "Optional captions (CC) toggle in Settings"
 }

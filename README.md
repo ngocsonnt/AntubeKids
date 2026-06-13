@@ -14,6 +14,7 @@ that fetches the sheet (done natively to avoid WebView CORS).
 - 📄 Video list from a **public Google Sheet** (column A = title, column B = YouTube link)
 - 🗂️ If the spreadsheet has multiple tabs, they appear as **playlists** on the right
 - ⏱️ Each thumbnail shows the **clip duration** (scraped without an API key, cached per video)
+- 💬 Optional **captions (CC)** toggle — shows YouTube subtitles (incl. auto-generated) when available
 - ▶️ Uses YouTube's native player controls (timeline/scrubber); remote keys also drive
   the player (OK = play/pause, ◀▶ = seek 10s, ▲▼ = previous/next video)
 - 🔁 Auto-advances to the next video; videos that block embedding are skipped
