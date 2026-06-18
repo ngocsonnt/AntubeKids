@@ -259,32 +259,6 @@ public class MainActivity extends Activity {
             }).start();
         }
 
-        // Read a video's duration (seconds) by scraping "lengthSeconds" from the
-        // watch page — no API key needed. Returns via window.onDuration(id, secs).
-        @JavascriptInterface
-        public void fetchDuration(final String videoId) {
-            new Thread(() -> {
-                int secs = 0;
-                try {
-                    String html = httpGet("https://www.youtube.com/watch?v=" + videoId, 0);
-                    String key = "\"lengthSeconds\":\"";
-                    int i = html.indexOf(key);
-                    if (i >= 0) {
-                        int j = html.indexOf('"', i + key.length());
-                        if (j > i) secs = Integer.parseInt(html.substring(i + key.length(), j));
-                    }
-                } catch (Exception e) { secs = 0; }
-                final int fs = secs;
-                runOnUiThread(() -> {
-                    if (webView != null) {
-                        webView.evaluateJavascript(
-                            "window.onDuration && window.onDuration(" + JSONObject.quote(videoId) + "," + fs + ")",
-                            null);
-                    }
-                });
-            }).start();
-        }
-
         // Fetch the spreadsheet's htmlview page so the web layer can list its tabs.
         @JavascriptInterface
         public void fetchSheets(final String url) {

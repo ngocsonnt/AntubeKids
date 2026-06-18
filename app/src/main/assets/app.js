@@ -25,8 +25,6 @@
   var screenW = 0, screenH = 0; // logical (CSS px) size from the projector's real resolution
 
   var durations = {};       // { videoId: seconds } — cached clip durations
-  var durQueue = [];        // ids waiting to have their duration fetched
-  var durBusy = false;      // one duration fetch at a time (keeps it light)
   var spreadsheetId = "";   // current spreadsheet id
   var sheets = [];          // [{ name, gid }] tabs in the spreadsheet
   var currentGid = null;    // gid of the tab currently shown
@@ -315,10 +313,12 @@
     }
     if (selected >= videos.length) selected = 0;
     updateSelection();
-    queueDurations();
   }
 
-  // ----- Clip durations (scraped natively, cached forever per video id) -----
+  // ----- Clip durations -----
+  // Captured from the player while a video plays (see updateProgress) and cached.
+  // We no longer scrape YouTube watch pages — that got rate-limited (HTTP 429) and
+  // made every launch slow.
   function loadDurations() {
     try { durations = JSON.parse(localStorage.getItem("durations") || "{}"); }
     catch (e) { durations = {}; }
@@ -326,33 +326,15 @@
   function saveDurations() {
     try { localStorage.setItem("durations", JSON.stringify(durations)); } catch (e) {}
   }
-  function queueDurations() {
-    if (!hasNative) return;             // browser preview can't (CORS)
-    var seen = {};
-    durQueue = [];
-    for (var i = 0; i < videos.length; i++) {
-      var id = videos[i].id;
-      if (!durations[id] && !seen[id]) { seen[id] = 1; durQueue.push(id); }
-    }
-    pumpDurations();
+  function setDuration(id, secs) {
+    if (!secs || secs <= 0) return;
+    secs = Math.round(secs);
+    if (durations[id] === secs) return;
+    durations[id] = secs;
+    saveDurations();
+    var els = gridEl.querySelectorAll('.dur[data-vid="' + id + '"]');
+    for (var i = 0; i < els.length; i++) els[i].textContent = fmtTime(secs);
   }
-  function pumpDurations() {
-    if (durBusy || !durQueue.length || !hasNative) return;
-    durBusy = true;
-    var id = durQueue.shift();
-    try { window.Native.fetchDuration(id); }
-    catch (e) { durBusy = false; }
-  }
-  window.onDuration = function (id, secs) {
-    durBusy = false;
-    if (secs && secs > 0) {
-      durations[id] = secs;
-      saveDurations();
-      var els = gridEl.querySelectorAll('.dur[data-vid="' + id + '"]');
-      for (var i = 0; i < els.length; i++) els[i].textContent = fmtTime(secs);
-    }
-    pumpDurations();
-  };
 
   function tiles() { return gridEl.querySelectorAll(".tile"); }
 
@@ -558,6 +540,7 @@
     var dur = player.getDuration() || 0;
     timeEl.textContent = fmtTime(cur) + " / " + fmtTime(dur);
     progressFill.style.width = (dur > 0 ? Math.min(100, cur / dur * 100) : 0) + "%";
+    if (dur > 0 && current >= 0 && current < videos.length) setDuration(videos[current].id, dur);
   }
   function startProgress() {
     stopProgress();
