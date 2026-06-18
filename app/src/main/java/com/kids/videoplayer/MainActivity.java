@@ -6,12 +6,14 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.RenderProcessGoneDetail;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -56,6 +58,7 @@ public class MainActivity extends Activity {
     private SharedPreferences prefs;
     private FrameLayout root;
     private ConfigServer configServer;
+    private long stoppedAt = 0; // when the activity last went to background
 
     // YouTube native-fullscreen support
     private View customView;
@@ -146,6 +149,14 @@ public class MainActivity extends Activity {
             public void onPageFinished(WebView view, String url) {
                 pushScreenInfo();
             }
+
+            @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                // The WebView renderer was killed (commonly after a long idle in the
+                // background). The current WebView is dead — rebuild the whole screen.
+                recreate();
+                return true; // handled (must not keep using the dead WebView)
+            }
         });
 
         webView.addJavascriptInterface(new Bridge(), "Native");
@@ -225,6 +236,24 @@ public class MainActivity extends Activity {
         super.onResume();
         if (webView != null) webView.onResume();
         hideSystemUi();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        stoppedAt = SystemClock.elapsedRealtime();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        // Returning after a long time in the background: the YouTube player's
+        // connection is often stale (black screen on play). Reload for a clean state.
+        if (stoppedAt > 0 && webView != null
+                && SystemClock.elapsedRealtime() - stoppedAt > 15000) {
+            webView.reload();
+        }
+        stoppedAt = 0;
     }
 
     @Override

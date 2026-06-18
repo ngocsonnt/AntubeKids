@@ -1,6 +1,6 @@
 {
-  "versionCode": 13,
-  "versionName": "2.2",
+  "versionCode": 14,
+  "versionName": "2.3",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Fix slow startup: stop scraping YouTube watch pages (HTTP 429); capture durations from the player instead"
+  "notes": "Fix black screen after long idle: reload WebView on resume and recover from killed renderer"
 }
