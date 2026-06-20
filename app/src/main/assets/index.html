@@ -43,13 +43,12 @@
     <div id="settings-screen" class="screen overlay">
         <div class="settings-box">
             <h2>Settings</h2>
-            <p class="hint">Paste the <b>Google Sheet link</b> that holds your video list.
-               The sheet must be shared as <b>“Anyone with the link → Viewer”</b>.</p>
-            <p class="hint">One video per row: <b>column A = title</b>, <b>column B = YouTube link</b>.</p>
-            <input id="sheet-input" type="text" inputmode="url"
+            <p class="hint">Current video-list link (typing on the remote is disabled —
+               use <b>📱 Enter link from phone</b> below to change it):</p>
+            <input id="sheet-input" type="text" inputmode="url" disabled
                    placeholder="https://docs.google.com/spreadsheets/d/..." />
             <div class="settings-actions">
-                <button id="settings-save" class="primary-btn">Save &amp; Load</button>
+                <button id="settings-save" class="primary-btn" style="display:none">Save &amp; Load</button>
                 <button id="settings-cancel" class="ghost-btn">Cancel</button>
             </div>
             <button id="cc-btn" class="ghost-btn phone-entry">Captions (CC): Off</button>

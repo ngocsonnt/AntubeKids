@@ -349,8 +349,16 @@
     var names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     var tmr = new Date(now.getTime()); tmr.setDate(now.getDate() + 1);
     if (d.toDateString() === now.toDateString()) return hm;             // today -> time only
-    if (d.toDateString() === tmr.toDateString()) return "tomorrow " + hm;
-    return names[d.getDay()] + " " + hm;
+    if (d.toDateString() === tmr.toDateString()) return hm + " tomorrow"; // 7:00 AM tomorrow
+    return hm + " " + names[d.getDay()];                                // 8:00 AM Sat
+  }
+  // Full spelled-out duration, e.g. "8 hours 45 minutes"
+  function humanLong(mins) {
+    if (mins < 1) return "less than a minute";
+    var h = Math.floor(mins / 60), m = mins % 60, parts = [];
+    if (h) parts.push(h + (h === 1 ? " hour" : " hours"));
+    if (m) parts.push(m + (m === 1 ? " minute" : " minutes"));
+    return parts.join(" ");
   }
 
   // End (Date) of the watching window currently covering `now`, or null if none.
@@ -404,8 +412,12 @@
   }
   function showBlocked() {
     if (playerScreen.classList.contains("active")) returnToGrid();
-    var nxt = nextAllowed(new Date());
-    blockedMsg.textContent = "It's out of watching time, see you at: " + (nxt ? whenLabel(nxt) : "—");
+    var now = new Date(), nxt = nextAllowed(now), msg = "—";
+    if (nxt) {
+      var rem = Math.round((nxt.getTime() - now.getTime()) / 60000);
+      msg = whenLabel(nxt) + " (" + humanLong(rem) + " more)";
+    }
+    blockedMsg.textContent = "It's out of watching time, see you at: " + msg;
     blockedScreen.classList.add("active");
   }
   function hideBlocked() { blockedScreen.classList.remove("active"); }
@@ -778,7 +790,7 @@
     refreshUpdateLine();
     checkUpdate();
     settingsScreen.classList.add("active");
-    setTimeout(function () { sheetInput.focus(); }, 50);
+    setTimeout(function () { $("phone-btn").focus(); }, 50);
   }
   function closeSettings() {
     settingsScreen.classList.remove("active");
@@ -788,7 +800,8 @@
 
   // Focusable controls inside the Settings dialog, in navigation order.
   function settingsFocusables() {
-    var list = [sheetInput, $("settings-save"), $("settings-cancel"), $("cc-btn"), $("phone-btn")];
+    // The link field and Save button are disabled (set the link from a phone instead).
+    var list = [$("phone-btn"), $("cc-btn"), $("settings-cancel")];
     if (updateBtn && updateBtn.style.display !== "none") list.push(updateBtn);
     return list;
   }

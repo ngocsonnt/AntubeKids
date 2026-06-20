@@ -1,6 +1,6 @@
 {
-  "versionCode": 18,
-  "versionName": "2.7",
+  "versionCode": 19,
+  "versionName": "2.8",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Pin out-of-time frame (fixed); align remaining-time badge with the clip time row"
+  "notes": "Disable on-app link input (phone-only); add remaining time to out-of-time message"
 }
