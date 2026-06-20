@@ -337,12 +337,18 @@
   }
 
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function fmt12(d) {
+    var h = d.getHours(), m = d.getMinutes();
+    var ap = h >= 12 ? "PM" : "AM";
+    var h12 = h % 12; if (h12 === 0) h12 = 12;
+    return h12 + ":" + pad2(m) + " " + ap;        // e.g. 5:00 PM
+  }
   function whenLabel(d) {
     var now = new Date();
-    var hm = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    var hm = fmt12(d);
     var names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     var tmr = new Date(now.getTime()); tmr.setDate(now.getDate() + 1);
-    if (d.toDateString() === now.toDateString()) return "today " + hm;
+    if (d.toDateString() === now.toDateString()) return hm;             // today -> time only
     if (d.toDateString() === tmr.toDateString()) return "tomorrow " + hm;
     return names[d.getDay()] + " " + hm;
   }

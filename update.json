@@ -1,6 +1,6 @@
 {
-  "versionCode": 16,
-  "versionName": "2.5",
+  "versionCode": 17,
+  "versionName": "2.6",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Show remaining watching time (bottom-right countdown)"
+  "notes": "Out-of-time message: 12h AM/PM time, drop 'today' prefix"
 }
