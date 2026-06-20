@@ -16,6 +16,8 @@ that fetches the sheet (done natively to avoid WebView CORS).
 - ⏱️ Thumbnails show the **clip duration**, captured from the player on first play and cached
   (no API key, no page scraping — earlier watch-page scraping got rate-limited with HTTP 429)
 - 💬 Optional **captions (CC)** toggle — shows YouTube subtitles (incl. auto-generated) when available
+- ⏰ Optional **watching-time schedule**: add a hidden `Schedule` tab (Day / Start / End) to the
+  spreadsheet; outside those windows the app blocks playback and shows when watching resumes next
 - ▶️ Uses YouTube's native player controls (timeline/scrubber); remote keys also drive
   the player (OK = play/pause, ◀▶ = seek 10s, ▲▼ = previous/next video)
 - 🔁 Auto-advances to the next video; videos that block embedding are skipped

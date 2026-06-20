@@ -29,6 +29,9 @@
   var sheets = [];          // [{ name, gid }] tabs in the spreadsheet
   var currentGid = null;    // gid of the tab currently shown
   var sheetSel = 0;         // selected tab index when navigating the panel
+  var scheduleGid = null;   // gid of the hidden "Schedule" tab (if any)
+  var scheduleWindows = []; // [{ days:[0..6], start:min, end:min }] allowed watching times
+  var blockedTimer = null;  // re-checks the schedule while the blocked screen shows
 
   // ---- DOM ----
   var $ = function (id) { return document.getElementById(id); };
@@ -38,6 +41,8 @@
   var phoneScreen = $("phone-screen");
   var phoneUrlEl = $("phone-url");
   var phoneStatusEl = $("phone-status");
+  var blockedScreen = $("blocked-screen");
+  var blockedMsg = $("blocked-msg");
   var mainEl = $("main");
   var gridEl = $("grid");
   var sheetPanel = $("sheet-panel");
@@ -183,10 +188,10 @@
     var saved = getSavedUrl();
     spreadsheetId = extractId(saved);
     if (currentGid == null) currentGid = gidFromUrl(saved);
-    var url = spreadsheetId ? csvUrlForGid(currentGid) : toCsvUrl(saved);
-    setStatus("Loading videos…");
-    if (spreadsheetId) loadSheets();   // discover the spreadsheet's tabs
-    fetchCsv(url);
+    setStatus("Loading…");
+    if (!spreadsheetId) { fetchCsv(toCsvUrl(saved)); return; }
+    loadSheets();                                                 // resolves tabs (excludes Schedule) then loads the right tab
+    if (currentGid != null) fetchCsv(csvUrlForGid(currentGid));   // a known tab -> load now for speed
   }
 
   function fetchCsv(url) {
@@ -211,15 +216,151 @@
   }
 
   window.onSheetsHtml = function (html) {
-    var list = [], re = /items\.push\(\{name:\s*"((?:[^"\\]|\\.)*)",\s*pageUrl:\s*"[^"]*?gid\\?=(\d+)/g, m;
+    var all = [], re = /items\.push\(\{name:\s*"((?:[^"\\]|\\.)*)",\s*pageUrl:\s*"[^"]*?gid\\?=(\d+)/g, m;
     while ((m = re.exec(html)) !== null) {
-      list.push({ name: m[1].replace(/\\(.)/g, "$1"), gid: m[2] });
+      all.push({ name: m[1].replace(/\\(.)/g, "$1"), gid: m[2] });
     }
-    sheets = list;
-    if (currentGid == null && sheets.length) currentGid = sheets[0].gid;
+    // Pull out the hidden "Schedule" tab; the rest are playlists.
+    scheduleGid = null;
+    sheets = [];
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].name.trim().toLowerCase() === "schedule") scheduleGid = all[i].gid;
+      else sheets.push(all[i]);
+    }
+    // Make sure the shown tab is a real (non-schedule) playlist.
+    var ok = false;
+    for (var k = 0; k < sheets.length; k++) if (sheets[k].gid === currentGid) ok = true;
+    if (!ok) currentGid = sheets.length ? sheets[0].gid : null;
     renderSheetPanel();
+    if (currentGid != null) { setStatus("Loading…"); fetchCsv(csvUrlForGid(currentGid)); }
+
+    // Load (or clear) the watching-time schedule.
+    if (scheduleGid != null && hasNative) {
+      try { window.Native.fetchSchedule(csvUrlForGid(scheduleGid)); } catch (e) {}
+    } else {
+      scheduleWindows = [];
+      enforceSchedule();
+    }
   };
-  window.onSheetsError = function () { sheets = []; renderSheetPanel(); };
+  window.onSheetsError = function () {
+    sheets = []; scheduleGid = null; renderSheetPanel();
+    if (spreadsheetId && !videos.length) fetchCsv(csvUrlForGid(currentGid));
+  };
+
+  // ----- Watching-time schedule (hidden "Schedule" tab) -----
+  window.onScheduleCsv = function (csv) {
+    scheduleWindows = parseSchedule(parseCsv(csv || ""));
+    enforceSchedule();
+  };
+  window.onScheduleError = function () { scheduleWindows = []; enforceSchedule(); };
+
+  function parseHM(s) {
+    s = (s || "").trim().toLowerCase();
+    var m = s.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)?$/);
+    if (m) {
+      var h = +m[1], min = m[2] ? +m[2] : 0, ap = m[3];
+      if (ap === "pm" && h < 12) h += 12;
+      if (ap === "am" && h === 12) h = 0;
+      return h * 60 + min;
+    }
+    m = s.match(/^(\d{1,2})h(\d{2})?$/);            // "18h", "18h30"
+    if (m) return (+m[1]) * 60 + (m[2] ? +m[2] : 0);
+    return null;
+  }
+
+  function parseDays(s) {
+    s = (s || "").trim().toLowerCase();
+    if (!s) return [];
+    if (/daily|every ?day|^all$|hằng|mỗi/.test(s)) return [0, 1, 2, 3, 4, 5, 6];
+    if (/weekday/.test(s)) return [1, 2, 3, 4, 5];
+    if (/weekend/.test(s)) return [0, 6];
+    var map = { sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tues: 2, tuesday: 2,
+                wed: 3, weds: 3, wednesday: 3, thu: 4, thur: 4, thurs: 4, thursday: 4,
+                fri: 5, friday: 5, sat: 6, saturday: 6 };
+    var rng = s.match(/^([a-z]+)\s*-\s*([a-z]+)$/);
+    if (rng && map[rng[1]] != null && map[rng[2]] != null) {
+      var a = map[rng[1]], b = map[rng[2]], out = [], cur = a;
+      for (var k = 0; k < 7; k++) { out.push(cur); if (cur === b) break; cur = (cur + 1) % 7; }
+      return out;
+    }
+    var parts = s.split(/[,\/ ]+/), res = [];
+    for (var p = 0; p < parts.length; p++) {
+      if (map[parts[p]] != null && res.indexOf(map[parts[p]]) < 0) res.push(map[parts[p]]);
+    }
+    return res;
+  }
+
+  function parseSchedule(rows) {
+    var wins = [];
+    for (var r = 0; r < rows.length; r++) {
+      var c = rows[r];
+      if (!c || c.length < 3) continue;
+      var days = parseDays(c[0]), st = parseHM(c[1]), en = parseHM(c[2]);
+      if (days.length && st != null && en != null) wins.push({ days: days, start: st, end: en });
+    }
+    return wins;
+  }
+
+  function isAllowedAt(date) {
+    if (!scheduleWindows.length) return true;     // no schedule -> always allowed
+    var day = date.getDay(), mins = date.getHours() * 60 + date.getMinutes();
+    for (var i = 0; i < scheduleWindows.length; i++) {
+      var w = scheduleWindows[i];
+      if (w.end > w.start) {
+        if (w.days.indexOf(day) >= 0 && mins >= w.start && mins < w.end) return true;
+      } else {                                     // window crosses midnight
+        if (w.days.indexOf(day) >= 0 && mins >= w.start) return true;
+        if (w.days.indexOf((day + 6) % 7) >= 0 && mins < w.end) return true;
+      }
+    }
+    return false;
+  }
+  function isAllowedNow() { return isAllowedAt(new Date()); }
+
+  function nextAllowed(now) {
+    for (var add = 0; add <= 7; add++) {
+      var d = new Date(now.getTime());
+      d.setDate(now.getDate() + add);
+      var day = d.getDay(), starts = [];
+      for (var i = 0; i < scheduleWindows.length; i++) {
+        if (scheduleWindows[i].days.indexOf(day) >= 0) starts.push(scheduleWindows[i].start);
+      }
+      starts.sort(function (a, b) { return a - b; });
+      for (var s = 0; s < starts.length; s++) {
+        var cand = new Date(d.getTime());
+        cand.setHours(Math.floor(starts[s] / 60), starts[s] % 60, 0, 0);
+        if (cand.getTime() > now.getTime()) return cand;
+      }
+    }
+    return null;
+  }
+
+  function pad2(n) { return n < 10 ? "0" + n : "" + n; }
+  function whenLabel(d) {
+    var now = new Date();
+    var hm = pad2(d.getHours()) + ":" + pad2(d.getMinutes());
+    var names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var tmr = new Date(now.getTime()); tmr.setDate(now.getDate() + 1);
+    if (d.toDateString() === now.toDateString()) return "today " + hm;
+    if (d.toDateString() === tmr.toDateString()) return "tomorrow " + hm;
+    return names[d.getDay()] + " " + hm;
+  }
+
+  function enforceSchedule() {
+    if (!scheduleWindows.length || isAllowedNow()) { hideBlocked(); return; }
+    showBlocked();
+  }
+  function showBlocked() {
+    if (playerScreen.classList.contains("active")) returnToGrid();
+    var nxt = nextAllowed(new Date());
+    blockedMsg.textContent = "It's out of watching time, see you at: " + (nxt ? whenLabel(nxt) : "—");
+    blockedScreen.classList.add("active");
+    if (!blockedTimer) blockedTimer = setInterval(enforceSchedule, 30000);
+  }
+  function hideBlocked() {
+    blockedScreen.classList.remove("active");
+    if (blockedTimer) { clearInterval(blockedTimer); blockedTimer = null; }
+  }
 
   function selectSheet(i) {
     if (i < 0 || i >= sheets.length) return;
@@ -462,6 +603,7 @@
 
   function play(index) {
     if (index < 0 || index >= videos.length) return;
+    if (scheduleWindows.length && !isAllowedNow()) { showBlocked(); return; }
     current = index;
     showScreen("player");
     nowPlayingEl.textContent = videos[index].title;
@@ -535,6 +677,7 @@
     return (h > 0 ? h + ":" : "") + mm + ":" + ss;
   }
   function updateProgress() {
+    if (scheduleWindows.length && !isAllowedNow()) { returnToGrid(); showBlocked(); return; }
     if (!player || !player.getCurrentTime || !player.getDuration) return;
     var cur = player.getCurrentTime() || 0;
     var dur = player.getDuration() || 0;
@@ -706,6 +849,7 @@
   // Returns true if handled by the web layer.
   // =======================================================================
   window.appHandleBack = function () {
+    if (blockedScreen.classList.contains("active")) { hideBlocked(); return true; }
     if (phoneScreen.classList.contains("active")) { closePhone(); return true; }
     if (settingsScreen.classList.contains("active")) { closeSettings(); return true; }
     if (playerScreen.classList.contains("active")) { returnToGrid(); return true; }
@@ -724,6 +868,14 @@
   // =======================================================================
   document.addEventListener("keydown", function (ev) {
     var key = ev.key;
+
+    // Out-of-time screen: any of these just dismisses the message (play stays blocked)
+    if (blockedScreen.classList.contains("active")) {
+      if (key === "Escape" || key === "GoBack" || key === "Enter" || key === " " || key === "Backspace") {
+        ev.preventDefault(); hideBlocked();
+      }
+      return;
+    }
 
     // "Enter from phone" overlay: only Back/Done/OK closes it
     if (phoneScreen.classList.contains("active")) {
@@ -839,6 +991,7 @@
   $("phone-btn").addEventListener("click", openPhone);
   $("phone-close").addEventListener("click", closePhone);
   $("cc-btn").addEventListener("click", toggleCc);
+  blockedScreen.addEventListener("click", hideBlocked);
 
   // Keep header zone state in sync when navigating by touch/focus
   reloadBtn.addEventListener("focus", function () { zone = "header"; headerSel = 0; });

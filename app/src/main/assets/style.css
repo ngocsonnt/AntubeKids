@@ -274,6 +274,24 @@ html, body {
     cursor: pointer;
 }
 
+/* ---------- Out of watching time ---------- */
+.blocked {
+    display: none;
+    background: #101522;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+.blocked.active { display: flex; }
+.blocked-box { text-align: center; padding: 6vw; max-width: 90vw; }
+.blocked-emoji { font-size: 16vh; line-height: 1; margin-bottom: 3vh; }
+.blocked-msg {
+    font-size: 5vh;
+    font-weight: 800;
+    line-height: 1.4;
+    color: #fff;
+}
+
 /* ---------- Big centered message ---------- */
 .big-msg {
     position: absolute;

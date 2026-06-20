@@ -1,6 +1,6 @@
 {
-  "versionCode": 14,
-  "versionName": "2.3",
+  "versionCode": 15,
+  "versionName": "2.4",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Fix black screen after long idle: reload WebView on resume and recover from killed renderer"
+  "notes": "Watching-time schedule via hidden Schedule tab; block playback out of hours"
 }

@@ -301,6 +301,15 @@ public class MainActivity extends Activity {
             }).start();
         }
 
+        // Fetch the hidden "Schedule" tab as CSV (watching-time windows).
+        @JavascriptInterface
+        public void fetchSchedule(final String url) {
+            new Thread(() -> {
+                try { deliver("window.onScheduleCsv", httpGet(url, 0)); }
+                catch (Exception e) { deliver("window.onScheduleError", e.getMessage() == null ? "" : e.getMessage()); }
+            }).start();
+        }
+
         @JavascriptInterface
         public String getAppVersion() {
             return currentVersionName();

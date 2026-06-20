@@ -26,6 +26,28 @@ Muốn thêm/bớt video sau này: chỉ cần sửa Sheet rồi bấm nút 🔄
 
 ---
 
+## 1b. Quản lý giờ xem (tuỳ chọn — sheet "Schedule")
+
+Muốn bé chỉ xem theo khung giờ, thêm **một tab tên đúng `Schedule`** trong cùng file Google Sheet
+(tab này tự ẩn, không hiện trong danh sách playlist). Mỗi dòng là một khung giờ được phép:
+
+| A (Ngày)   | B (Bắt đầu) | C (Kết thúc) |
+|------------|-------------|--------------|
+| Daily      | 18:00       | 19:30        |
+| Weekend    | 08:00       | 10:00        |
+| Mon-Fri    | 17:00       | 18:00        |
+
+- **Ngày** nhận: `Daily` (mỗi ngày), `Weekday` (T2–T6), `Weekend` (T7,CN), tên thứ tiếng Anh
+  (`Mon`,`Tue`,`Wed`,`Thu`,`Fri`,`Sat`,`Sun`), khoảng (`Mon-Fri`), hoặc liệt kê (`Mon, Wed, Fri`).
+- **Giờ**: dạng 24h `HH:MM` (vd `18:00`) hoặc có AM/PM (`6:00 pm`). Một ngày có thể có nhiều dòng.
+- Ngoài giờ cho phép, app hiện *“It's out of watching time, see you at: …”* kèm thời điểm xem kế tiếp,
+  và **không cho phát**. Đang xem mà hết giờ sẽ tự dừng.
+- **Không có tab Schedule (hoặc tab rỗng/sai) → không giới hạn**, app chạy như bình thường.
+
+> App dùng **ngày giờ của máy chiếu** để tính — nhớ để máy chiếu đúng giờ/múi giờ.
+
+---
+
 ## 2. Cài app vào máy chiếu
 
 File APK nằm ở: `app/build/outputs/apk/debug/app-debug.apk`
