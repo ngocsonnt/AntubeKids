@@ -1,6 +1,6 @@
 {
-  "versionCode": 17,
-  "versionName": "2.6",
+  "versionCode": 18,
+  "versionName": "2.7",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Out-of-time message: 12h AM/PM time, drop 'today' prefix"
+  "notes": "Pin out-of-time frame (fixed); align remaining-time badge with the clip time row"
 }

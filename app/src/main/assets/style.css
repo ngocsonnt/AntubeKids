@@ -279,13 +279,13 @@ html, body {
     display: none;
     position: fixed;
     right: 2.5vw;
-    bottom: 6vh;
+    bottom: 2.2vh;          /* level with the clip time on the left (.time) */
     z-index: 40;
-    font-size: 2.4vh;
+    font-size: 2.8vh;
     font-weight: 700;
     color: #fff;
     background: rgba(0,0,0,.6);
-    padding: 1vh 1.6vw;
+    padding: 0.8vh 1.8vw;
     border-radius: 4vh;
     pointer-events: none;
 }
@@ -293,6 +293,9 @@ html, body {
 /* ---------- Out of watching time ---------- */
 .blocked {
     display: none;
+    position: fixed;     /* pin to the viewport so scrolling can't move it away */
+    inset: 0;
+    overflow: hidden;
     background: #101522;
     align-items: center;
     justify-content: center;
