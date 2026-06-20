@@ -42,6 +42,7 @@ Muốn bé chỉ xem theo khung giờ, thêm **một tab tên đúng `Schedule`*
 - **Giờ**: dạng 24h `HH:MM` (vd `18:00`) hoặc có AM/PM (`6:00 pm`). Một ngày có thể có nhiều dòng.
 - Ngoài giờ cho phép, app hiện *“It's out of watching time, see you at: …”* kèm thời điểm xem kế tiếp,
   và **không cho phát**. Đang xem mà hết giờ sẽ tự dừng.
+- Trong giờ cho phép, góc dưới-phải hiện **thời gian còn lại** (vd *“watching will end in: 35 minutes”*).
 - **Không có tab Schedule (hoặc tab rỗng/sai) → không giới hạn**, app chạy như bình thường.
 
 > App dùng **ngày giờ của máy chiếu** để tính — nhớ để máy chiếu đúng giờ/múi giờ.

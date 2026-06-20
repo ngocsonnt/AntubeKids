@@ -274,6 +274,22 @@ html, body {
     cursor: pointer;
 }
 
+/* ---------- Remaining watching time ---------- */
+.countdown {
+    display: none;
+    position: fixed;
+    right: 2.5vw;
+    bottom: 6vh;
+    z-index: 40;
+    font-size: 2.4vh;
+    font-weight: 700;
+    color: #fff;
+    background: rgba(0,0,0,.6);
+    padding: 1vh 1.6vw;
+    border-radius: 4vh;
+    pointer-events: none;
+}
+
 /* ---------- Out of watching time ---------- */
 .blocked {
     display: none;

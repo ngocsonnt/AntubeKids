@@ -1,6 +1,6 @@
 {
-  "versionCode": 15,
-  "versionName": "2.4",
+  "versionCode": 16,
+  "versionName": "2.5",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Watching-time schedule via hidden Schedule tab; block playback out of hours"
+  "notes": "Show remaining watching time (bottom-right countdown)"
 }

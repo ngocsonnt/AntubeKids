@@ -31,7 +31,7 @@
   var sheetSel = 0;         // selected tab index when navigating the panel
   var scheduleGid = null;   // gid of the hidden "Schedule" tab (if any)
   var scheduleWindows = []; // [{ days:[0..6], start:min, end:min }] allowed watching times
-  var blockedTimer = null;  // re-checks the schedule while the blocked screen shows
+  var scheduleTicker = null; // periodic schedule re-check + countdown refresh
 
   // ---- DOM ----
   var $ = function (id) { return document.getElementById(id); };
@@ -43,6 +43,7 @@
   var phoneStatusEl = $("phone-status");
   var blockedScreen = $("blocked-screen");
   var blockedMsg = $("blocked-msg");
+  var countdownEl = $("countdown");
   var mainEl = $("main");
   var gridEl = $("grid");
   var sheetPanel = $("sheet-panel");
@@ -346,21 +347,62 @@
     return names[d.getDay()] + " " + hm;
   }
 
+  // End (Date) of the watching window currently covering `now`, or null if none.
+  function currentWindowEnd(now) {
+    if (!scheduleWindows.length) return null;
+    var day = now.getDay(), m = now.getHours() * 60 + now.getMinutes(), best = null;
+    for (var i = 0; i < scheduleWindows.length; i++) {
+      var w = scheduleWindows[i], cand = null;
+      if (w.end > w.start) {
+        if (w.days.indexOf(day) >= 0 && m >= w.start && m < w.end) {
+          cand = new Date(now); cand.setHours(0, 0, 0, 0); cand.setMinutes(w.end);
+        }
+      } else { // crosses midnight
+        if (w.days.indexOf(day) >= 0 && m >= w.start) {
+          cand = new Date(now); cand.setDate(now.getDate() + 1); cand.setHours(0, 0, 0, 0); cand.setMinutes(w.end);
+        } else if (w.days.indexOf((day + 6) % 7) >= 0 && m < w.end) {
+          cand = new Date(now); cand.setHours(0, 0, 0, 0); cand.setMinutes(w.end);
+        }
+      }
+      if (cand && (!best || cand.getTime() > best.getTime())) best = cand; // latest end among overlapping windows
+    }
+    return best;
+  }
+
+  function humanMins(mins) {
+    if (mins < 1) return "less than a minute";
+    if (mins < 60) return mins + (mins === 1 ? " minute" : " minutes");
+    var h = Math.floor(mins / 60), m = mins % 60;
+    return h + (h === 1 ? " hour" : " hours") + (m ? " " + m + " min" : "");
+  }
+
+  function overlayOpen() {
+    return settingsScreen.classList.contains("active") || phoneScreen.classList.contains("active");
+  }
+  function hideCountdown() { countdownEl.style.display = "none"; }
+  function updateCountdown() {
+    var end = currentWindowEnd(new Date());
+    if (!end || overlayOpen()) { hideCountdown(); return; }
+    var rem = Math.round((end.getTime() - Date.now()) / 60000);
+    if (rem < 0) rem = 0;
+    countdownEl.textContent = "watching will end in: " + humanMins(rem);
+    countdownEl.style.display = "block";
+  }
+
+  // Single source of truth: checks the schedule, toggles the blocked screen and
+  // the countdown. Called on load, on resume, and every 30s by scheduleTicker.
   function enforceSchedule() {
-    if (!scheduleWindows.length || isAllowedNow()) { hideBlocked(); return; }
-    showBlocked();
+    if (!scheduleWindows.length) { hideBlocked(); hideCountdown(); return; }
+    if (isAllowedNow()) { hideBlocked(); updateCountdown(); }
+    else { hideCountdown(); if (!overlayOpen()) showBlocked(); }
   }
   function showBlocked() {
     if (playerScreen.classList.contains("active")) returnToGrid();
     var nxt = nextAllowed(new Date());
     blockedMsg.textContent = "It's out of watching time, see you at: " + (nxt ? whenLabel(nxt) : "—");
     blockedScreen.classList.add("active");
-    if (!blockedTimer) blockedTimer = setInterval(enforceSchedule, 30000);
   }
-  function hideBlocked() {
-    blockedScreen.classList.remove("active");
-    if (blockedTimer) { clearInterval(blockedTimer); blockedTimer = null; }
-  }
+  function hideBlocked() { blockedScreen.classList.remove("active"); }
 
   function selectSheet(i) {
     if (i < 0 || i >= sheets.length) return;
@@ -609,6 +651,7 @@
     nowPlayingEl.textContent = videos[index].title;
     isPlaying = true;
     startProgress();
+    updateCountdown();
 
     if (!ytApiReady) { pendingPlay = index; loadYouTubeApi(); return; }
 
@@ -712,6 +755,7 @@
     showScreen("grid");
     zone = "grid";
     updateSelection();
+    enforceSchedule();
   }
 
   // =======================================================================
@@ -733,6 +777,7 @@
   function closeSettings() {
     settingsScreen.classList.remove("active");
     if (gridScreen.classList.contains("active")) { zone = "grid"; updateSelection(); }
+    enforceSchedule();
   }
 
   // Focusable controls inside the Settings dialog, in navigation order.
@@ -779,6 +824,7 @@
     phoneScreen.classList.remove("active");
     // settings overlay is still underneath; restore focus there
     setTimeout(function () { $("phone-btn").focus(); }, 50);
+    enforceSchedule();
   }
   window.onConfigReceived = function (url) {
     phoneStatusEl.textContent = "✅ Received! Loading…";
@@ -1005,5 +1051,6 @@
   loadYouTubeApi();
   loadVideos();
   checkUpdate();   // check GitHub for a newer build on launch
+  scheduleTicker = setInterval(enforceSchedule, 30000);  // keep schedule + countdown live
 
 })();
