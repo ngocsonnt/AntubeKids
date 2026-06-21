@@ -32,6 +32,7 @@
   var scheduleGid = null;   // gid of the hidden "Schedule" tab (if any)
   var scheduleWindows = []; // [{ days:[0..6], start:min, end:min }] allowed watching times
   var scheduleTicker = null; // periodic schedule re-check + countdown refresh
+  var timeBase = null;       // { server: epochMs, perf: performance.now() } — trusted clock anchor
 
   // ---- DOM ----
   var $ = function (id) { return document.getElementById(id); };
@@ -189,7 +190,12 @@
     var saved = getSavedUrl();
     spreadsheetId = extractId(saved);
     if (currentGid == null) currentGid = gidFromUrl(saved);
-    setStatus("Loading…");
+    // Show the saved list instantly so the grid isn't blank while refreshing.
+    if (!videos.length) {
+      var cached = localStorage.getItem("videosCache");
+      if (cached) { try { videos = JSON.parse(cached); renderGrid(); } catch (e) {} }
+    }
+    setStatus(videos.length ? "" : "Loading…");
     if (!spreadsheetId) { fetchCsv(toCsvUrl(saved)); return; }
     loadSheets();                                                 // resolves tabs (excludes Schedule) then loads the right tab
     if (currentGid != null) fetchCsv(csvUrlForGid(currentGid));   // a known tab -> load now for speed
@@ -239,7 +245,8 @@
     if (scheduleGid != null && hasNative) {
       try { window.Native.fetchSchedule(csvUrlForGid(scheduleGid)); } catch (e) {}
     } else {
-      scheduleWindows = [];
+      scheduleWindows = [];   // no Schedule tab -> no restriction
+      saveScheduleCache();
       enforceSchedule();
     }
   };
@@ -249,11 +256,16 @@
   };
 
   // ----- Watching-time schedule (hidden "Schedule" tab) -----
+  function saveScheduleCache() { try { localStorage.setItem("schedule", JSON.stringify(scheduleWindows)); } catch (e) {} }
+  function loadScheduleCache() { try { scheduleWindows = JSON.parse(localStorage.getItem("schedule") || "[]") || []; } catch (e) { scheduleWindows = []; } }
+
   window.onScheduleCsv = function (csv) {
     scheduleWindows = parseSchedule(parseCsv(csv || ""));
+    saveScheduleCache();
     enforceSchedule();
   };
-  window.onScheduleError = function () { scheduleWindows = []; enforceSchedule(); };
+  // On error keep the cached schedule (don't let a failed fetch unlock playback).
+  window.onScheduleError = function () { enforceSchedule(); };
 
   function parseHM(s) {
     s = (s || "").trim().toLowerCase();
@@ -302,6 +314,26 @@
     return wins;
   }
 
+  // ----- Trusted time (immune to changing the device clock) -----
+  // Anchored to a server's time + a monotonic counter, so moving the system
+  // clock forward/back does not change what `now()` returns.
+  function perfNow() {
+    return (window.performance && performance.now) ? performance.now() : Date.now();
+  }
+  window.onServerTime = function (ms) {
+    if (ms && ms > 0) {
+      timeBase = { server: ms, perf: perfNow() };
+      enforceSchedule();   // re-check with the corrected time
+    }
+  };
+  function syncTime() {
+    if (hasNative) { try { window.Native.fetchServerTime(); } catch (e) {} }
+  }
+  function now() {
+    if (timeBase) return new Date(timeBase.server + (perfNow() - timeBase.perf));
+    return new Date();   // before the first sync (offline) -> device clock
+  }
+
   function isAllowedAt(date) {
     if (!scheduleWindows.length) return true;     // no schedule -> always allowed
     var day = date.getDay(), mins = date.getHours() * 60 + date.getMinutes();
@@ -316,7 +348,7 @@
     }
     return false;
   }
-  function isAllowedNow() { return isAllowedAt(new Date()); }
+  function isAllowedNow() { return isAllowedAt(now()); }
 
   function nextAllowed(now) {
     for (var add = 0; add <= 7; add++) {
@@ -344,11 +376,11 @@
     return h12 + ":" + pad2(m) + " " + ap;        // e.g. 5:00 PM
   }
   function whenLabel(d) {
-    var now = new Date();
+    var ref = now();
     var hm = fmt12(d);
     var names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    var tmr = new Date(now.getTime()); tmr.setDate(now.getDate() + 1);
-    if (d.toDateString() === now.toDateString()) return hm;             // today -> time only
+    var tmr = new Date(ref.getTime()); tmr.setDate(ref.getDate() + 1);
+    if (d.toDateString() === ref.toDateString()) return hm;             // today -> time only
     if (d.toDateString() === tmr.toDateString()) return hm + " tomorrow"; // 7:00 AM tomorrow
     return hm + " " + names[d.getDay()];                                // 8:00 AM Sat
   }
@@ -395,9 +427,10 @@
   }
   function hideCountdown() { countdownEl.style.display = "none"; }
   function updateCountdown() {
-    var end = currentWindowEnd(new Date());
+    var cur = now();
+    var end = currentWindowEnd(cur);
     if (!end || overlayOpen()) { hideCountdown(); return; }
-    var rem = Math.round((end.getTime() - Date.now()) / 60000);
+    var rem = Math.round((end.getTime() - cur.getTime()) / 60000);
     if (rem < 0) rem = 0;
     countdownEl.textContent = "watching will end in: " + humanMins(rem);
     countdownEl.style.display = "block";
@@ -412,9 +445,9 @@
   }
   function showBlocked() {
     if (playerScreen.classList.contains("active")) returnToGrid();
-    var now = new Date(), nxt = nextAllowed(now), msg = "—";
+    var cur = now(), nxt = nextAllowed(cur), msg = "—";
     if (nxt) {
-      var rem = Math.round((nxt.getTime() - now.getTime()) / 60000);
+      var rem = Math.round((nxt.getTime() - cur.getTime()) / 60000);
       msg = whenLabel(nxt) + " (" + humanLong(rem) + " more)";
     }
     blockedMsg.textContent = "It's out of watching time, see you at: " + msg;
@@ -1067,9 +1100,12 @@
   // =======================================================================
   loadDurations();
   loadCc();
+  loadScheduleCache();   // apply last-known schedule before the network responds
+  syncTime();            // fetch trusted network time ASAP
   loadYouTubeApi();
   loadVideos();
-  checkUpdate();   // check GitHub for a newer build on launch
+  checkUpdate();         // check GitHub for a newer build on launch
+  enforceSchedule();     // enforce immediately using cached schedule
   scheduleTicker = setInterval(enforceSchedule, 30000);  // keep schedule + countdown live
 
 })();

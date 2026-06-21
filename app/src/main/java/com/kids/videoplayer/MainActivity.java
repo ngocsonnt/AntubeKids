@@ -315,6 +315,34 @@ public class MainActivity extends Activity {
             return currentVersionName();
         }
 
+        // Trusted network time (epoch millis from a server's Date header) so the
+        // schedule can't be bypassed by changing the device clock.
+        @JavascriptInterface
+        public void fetchServerTime() {
+            new Thread(() -> {
+                long t = 0;
+                HttpURLConnection c = null;
+                try {
+                    c = (HttpURLConnection) new URL("https://www.google.com/generate_204").openConnection();
+                    c.setConnectTimeout(10000);
+                    c.setReadTimeout(10000);
+                    c.setRequestProperty("User-Agent", "AntubeKids");
+                    c.getResponseCode();
+                    t = c.getDate();              // Date response header -> epoch millis (UTC)
+                } catch (Exception e) {
+                    t = 0;
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+                final long ft = t;
+                runOnUiThread(() -> {
+                    if (webView != null) {
+                        webView.evaluateJavascript("window.onServerTime && window.onServerTime(" + ft + ")", null);
+                    }
+                });
+            }).start();
+        }
+
         // Start a tiny LAN web server so a phone can submit the sheet link.
         // Returns the address to open (e.g. http://192.168.1.5:8080), or "".
         @JavascriptInterface

@@ -45,7 +45,8 @@ Muốn bé chỉ xem theo khung giờ, thêm **một tab tên đúng `Schedule`*
 - Trong giờ cho phép, góc dưới-phải hiện **thời gian còn lại** (vd *“watching will end in: 35 minutes”*).
 - **Không có tab Schedule (hoặc tab rỗng/sai) → không giới hạn**, app chạy như bình thường.
 
-> App dùng **ngày giờ của máy chiếu** để tính — nhớ để máy chiếu đúng giờ/múi giờ.
+> App **lấy giờ thật từ mạng** (đồng bộ khi mở app) và chạy bằng đồng hồ đếm độc lập, nên
+> **đổi giờ hệ thống của máy chiếu KHÔNG qua mặt được lịch**. (Múi giờ vẫn lấy theo máy — để máy đúng múi giờ.)
 
 ---
 

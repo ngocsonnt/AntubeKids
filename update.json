@@ -1,6 +1,6 @@
 {
-  "versionCode": 19,
-  "versionName": "2.8",
+  "versionCode": 20,
+  "versionName": "2.9",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Disable on-app link input (phone-only); add remaining time to out-of-time message"
+  "notes": "Trusted network time (clock-change proof schedule); instant cached list on launch"
 }
