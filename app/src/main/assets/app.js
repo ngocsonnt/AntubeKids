@@ -366,13 +366,12 @@
   // Stored as minutes east of UTC. We then derive wall-clock from the trusted UTC
   // time + this fixed offset using getUTC* — independent of the device's live TZ
   // and not reliant on Intl (works on old WebViews).
+  // Timezone offset (minutes east of UTC). We deliberately DON'T read the device
+  // timezone (the child can change it). It comes from the Schedule sheet's "TZ" row
+  // if present, else defaults to +7 (Vietnam). This makes the schedule tamper-proof.
   function getTZOffset() {
-    if (tzOffsetSheet != null) return tzOffsetSheet;        // set by the Schedule sheet (authoritative)
-    var s = localStorage.getItem("tzoff");
-    if (s !== null && s !== "") return parseInt(s, 10);     // locked at first run
-    var off = -(new Date().getTimezoneOffset());            // device TZ at first run
-    localStorage.setItem("tzoff", String(off));
-    return off;
+    if (tzOffsetSheet != null) return tzOffsetSheet;
+    return 420; // +7:00 (Vietnam) — set a "TZ" row in the Schedule tab to change
   }
   // Current wall-clock in the locked timezone: { day: 0..6, mins: 0..1439 }
   function getWall() {
@@ -1132,8 +1131,7 @@
   // =======================================================================
   loadDurations();
   loadCc();
-  getTZOffset();          // lock the timezone offset on first run (ignored thereafter)
-  loadScheduleCache();   // apply last-known schedule before the network responds
+  loadScheduleCache();   // apply last-known schedule (incl. TZ) before the network responds
   syncTime();            // fetch trusted network time ASAP
   loadYouTubeApi();
   loadVideos();

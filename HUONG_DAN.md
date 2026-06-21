@@ -45,20 +45,17 @@ Muốn bé chỉ xem theo khung giờ, thêm **một tab tên đúng `Schedule`*
 - Trong giờ cho phép, góc dưới-phải hiện **thời gian còn lại** (vd *“watching will end in: 35 minutes”*).
 - **Không có tab Schedule (hoặc tab rỗng/sai) → không giới hạn**, app chạy như bình thường.
 
-> App **lấy giờ thật từ mạng** + đồng hồ đếm độc lập của Android, và **khoá múi giờ** lúc cài
-> lần đầu → **đổi giờ HOẶC đổi múi giờ của máy chiếu đều KHÔNG qua mặt được lịch**.
+> App **lấy giờ thật từ mạng** + đồng hồ đếm độc lập của Android, và **không đọc múi giờ của
+> máy chiếu** (mặc định **+7 Việt Nam**) → **đổi giờ HOẶC đổi múi giờ của máy chiếu đều KHÔNG
+> qua mặt được lịch**.
 >
-> Muốn chắc chắn (hoặc đổi múi giờ), thêm 1 dòng trong tab **Schedule**: cột A ghi `TZ`,
-> cột B ghi lệch giờ, ví dụ `+7` (Việt Nam). Dòng này do bố mẹ kiểm soát trên Google Sheet,
-> bé không sửa được trên máy chiếu.
+> Ở múi giờ khác? Thêm 1 dòng trong tab **Schedule**: cột A ghi `TZ`, cột B ghi lệch giờ
+> (vd `+8`, `-5`, `+5:30`). Dòng này bố mẹ kiểm soát trên Google Sheet, bé không sửa được trên máy.
 >
 > | A | B |
 > |----|----|
 > | TZ | +7 |
 > | Daily | 18:00 | 19:30 |
->
-> *Nếu cài app lần đầu mà máy chiếu đang để sai múi giờ, hãy chỉnh máy về đúng múi giờ rồi
-> thêm dòng `TZ` như trên (hoặc xoá dữ liệu app 1 lần để khoá lại).*
 
 ---
 

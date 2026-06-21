@@ -1,6 +1,6 @@
 {
-  "versionCode": 22,
-  "versionName": "3.1",
+  "versionCode": 23,
+  "versionName": "3.2",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Timezone-tamper proof schedule: locked UTC offset + optional TZ row in Schedule sheet"
+  "notes": "Fix wrong time: ignore device timezone, default +7 (override via TZ row)"
 }
