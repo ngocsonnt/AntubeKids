@@ -33,6 +33,7 @@
   var scheduleWindows = []; // [{ days:[0..6], start:min, end:min }] allowed watching times
   var scheduleTicker = null; // periodic schedule re-check + countdown refresh
   var timeBase = null;       // { server: epochMs, perf: performance.now() } — trusted clock anchor
+  var tzOffsetSheet = null;  // timezone offset (minutes east of UTC) set via a "TZ" row in the Schedule tab
 
   // ---- DOM ----
   var $ = function (id) { return document.getElementById(id); };
@@ -257,7 +258,11 @@
 
   // ----- Watching-time schedule (hidden "Schedule" tab) -----
   function saveScheduleCache() { try { localStorage.setItem("schedule", JSON.stringify(scheduleWindows)); } catch (e) {} }
-  function loadScheduleCache() { try { scheduleWindows = JSON.parse(localStorage.getItem("schedule") || "[]") || []; } catch (e) { scheduleWindows = []; } }
+  function loadScheduleCache() {
+    try { scheduleWindows = JSON.parse(localStorage.getItem("schedule") || "[]") || []; } catch (e) { scheduleWindows = []; }
+    var t = localStorage.getItem("tzoffsheet");
+    tzOffsetSheet = (t !== null && t !== "") ? parseInt(t, 10) : null;
+  }
 
   window.onScheduleCsv = function (csv) {
     scheduleWindows = parseSchedule(parseCsv(csv || ""));
@@ -303,14 +308,32 @@
     return res;
   }
 
+  function parseOffset(s) {
+    s = (s || "").trim().toLowerCase().replace(/gmt|utc/g, "");
+    var m = s.match(/([+-]?\d{1,2})(?::?(\d{2}))?/);
+    if (!m) return null;
+    var h = parseInt(m[1], 10), mm = m[2] ? parseInt(m[2], 10) : 0;
+    return h * 60 + (h < 0 ? -mm : mm);
+  }
+
   function parseSchedule(rows) {
     var wins = [];
+    tzOffsetSheet = null;
     for (var r = 0; r < rows.length; r++) {
       var c = rows[r];
-      if (!c || c.length < 3) continue;
+      if (!c || !c.length) continue;
+      var key = (c[0] || "").trim().toLowerCase();
+      if (/^(tz|gmt|utc|time ?zone)/.test(key)) {           // e.g. "TZ | +7"  or  "GMT+7"
+        var off = parseOffset(c.length > 1 && c[1] ? c[1] : c[0]);
+        if (off != null) tzOffsetSheet = off;
+        continue;
+      }
+      if (c.length < 3) continue;
       var days = parseDays(c[0]), st = parseHM(c[1]), en = parseHM(c[2]);
       if (days.length && st != null && en != null) wins.push({ days: days, start: st, end: en });
     }
+    if (tzOffsetSheet != null) localStorage.setItem("tzoffsheet", String(tzOffsetSheet));
+    else localStorage.removeItem("tzoffsheet");
     return wins;
   }
 
@@ -339,57 +362,90 @@
     return new Date();   // before the first sync (offline) -> device clock
   }
 
-  function isAllowedAt(date) {
-    if (!scheduleWindows.length) return true;     // no schedule -> always allowed
-    var day = date.getDay(), mins = date.getHours() * 60 + date.getMinutes();
+  // ----- Locked timezone offset (captured at first run so changing the device TZ can't bypass) -----
+  // Stored as minutes east of UTC. We then derive wall-clock from the trusted UTC
+  // time + this fixed offset using getUTC* — independent of the device's live TZ
+  // and not reliant on Intl (works on old WebViews).
+  function getTZOffset() {
+    if (tzOffsetSheet != null) return tzOffsetSheet;        // set by the Schedule sheet (authoritative)
+    var s = localStorage.getItem("tzoff");
+    if (s !== null && s !== "") return parseInt(s, 10);     // locked at first run
+    var off = -(new Date().getTimezoneOffset());            // device TZ at first run
+    localStorage.setItem("tzoff", String(off));
+    return off;
+  }
+  // Current wall-clock in the locked timezone: { day: 0..6, mins: 0..1439 }
+  function getWall() {
+    var d = new Date(now().getTime() + getTZOffset() * 60000);
+    return { day: d.getUTCDay(), mins: d.getUTCHours() * 60 + d.getUTCMinutes() };
+  }
+
+  function isAllowedNow() {
+    if (!scheduleWindows.length) return true;
+    var wn = getWall(), day = wn.day, m = wn.mins;
     for (var i = 0; i < scheduleWindows.length; i++) {
       var w = scheduleWindows[i];
       if (w.end > w.start) {
-        if (w.days.indexOf(day) >= 0 && mins >= w.start && mins < w.end) return true;
+        if (w.days.indexOf(day) >= 0 && m >= w.start && m < w.end) return true;
       } else {                                     // window crosses midnight
-        if (w.days.indexOf(day) >= 0 && mins >= w.start) return true;
-        if (w.days.indexOf((day + 6) % 7) >= 0 && mins < w.end) return true;
+        if (w.days.indexOf(day) >= 0 && m >= w.start) return true;
+        if (w.days.indexOf((day + 6) % 7) >= 0 && m < w.end) return true;
       }
     }
     return false;
   }
-  function isAllowedNow() { return isAllowedAt(now()); }
 
-  function nextAllowed(now) {
-    for (var add = 0; add <= 7; add++) {
-      var d = new Date(now.getTime());
-      d.setDate(now.getDate() + add);
-      var day = d.getDay(), starts = [];
-      for (var i = 0; i < scheduleWindows.length; i++) {
-        if (scheduleWindows[i].days.indexOf(day) >= 0) starts.push(scheduleWindows[i].start);
+  // Minutes until the current window ends (-1 if not in any window now).
+  function currentWindowRemaining() {
+    if (!scheduleWindows.length) return -1;
+    var wn = getWall(), day = wn.day, m = wn.mins, best = -1, rem;
+    for (var i = 0; i < scheduleWindows.length; i++) {
+      var w = scheduleWindows[i]; rem = -1;
+      if (w.end > w.start) {
+        if (w.days.indexOf(day) >= 0 && m >= w.start && m < w.end) rem = w.end - m;
+      } else {
+        if (w.days.indexOf(day) >= 0 && m >= w.start) rem = (1440 - m) + w.end;
+        else if (w.days.indexOf((day + 6) % 7) >= 0 && m < w.end) rem = w.end - m;
       }
-      starts.sort(function (a, b) { return a - b; });
-      for (var s = 0; s < starts.length; s++) {
-        var cand = new Date(d.getTime());
-        cand.setHours(Math.floor(starts[s] / 60), starts[s] % 60, 0, 0);
-        if (cand.getTime() > now.getTime()) return cand;
+      if (rem > best) best = rem;   // latest-ending overlapping window
+    }
+    return best;
+  }
+
+  // Soonest upcoming window start: { until, startMin, dayOffset, startDay } or null.
+  function nextStart() {
+    if (!scheduleWindows.length) return null;
+    var wn = getWall(), day = wn.day, m = wn.mins, bestUntil = -1, best = null;
+    for (var off = 0; off <= 7; off++) {
+      var d = (day + off) % 7;
+      for (var i = 0; i < scheduleWindows.length; i++) {
+        var w = scheduleWindows[i];
+        if (w.days.indexOf(d) < 0) continue;
+        var until = off * 1440 + w.start - m;
+        if (until > 0 && (bestUntil < 0 || until < bestUntil)) {
+          bestUntil = until;
+          best = { until: until, startMin: w.start, dayOffset: off, startDay: d };
+        }
       }
     }
-    return null;
+    return best;
   }
 
   function pad2(n) { return n < 10 ? "0" + n : "" + n; }
-  function fmt12(d) {
-    var h = d.getHours(), m = d.getMinutes();
+  function fmt12mins(mins) {
+    mins = ((mins % 1440) + 1440) % 1440;
+    var h = Math.floor(mins / 60), m = mins % 60;
     var ap = h >= 12 ? "PM" : "AM";
     var h12 = h % 12; if (h12 === 0) h12 = 12;
     return h12 + ":" + pad2(m) + " " + ap;        // e.g. 5:00 PM
   }
-  function whenLabel(d) {
-    var ref = now();
-    var hm = fmt12(d);
+  function nextLabel(ns) {
+    var hm = fmt12mins(ns.startMin);
+    if (ns.dayOffset === 0) return hm;                 // later today -> time only
+    if (ns.dayOffset === 1) return hm + " tomorrow";
     var names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    var tmr = new Date(ref.getTime()); tmr.setDate(ref.getDate() + 1);
-    if (d.toDateString() === ref.toDateString()) return hm;             // today -> time only
-    if (d.toDateString() === tmr.toDateString()) return hm + " tomorrow"; // 7:00 AM tomorrow
-    return hm + " " + names[d.getDay()];                                // 8:00 AM Sat
+    return hm + " " + names[ns.startDay];
   }
-  // Full spelled-out duration, e.g. "8 hours 45 minutes"
   function humanLong(mins) {
     if (mins < 1) return "less than a minute";
     var h = Math.floor(mins / 60), m = mins % 60, parts = [];
@@ -397,29 +453,6 @@
     if (m) parts.push(m + (m === 1 ? " minute" : " minutes"));
     return parts.join(" ");
   }
-
-  // End (Date) of the watching window currently covering `now`, or null if none.
-  function currentWindowEnd(now) {
-    if (!scheduleWindows.length) return null;
-    var day = now.getDay(), m = now.getHours() * 60 + now.getMinutes(), best = null;
-    for (var i = 0; i < scheduleWindows.length; i++) {
-      var w = scheduleWindows[i], cand = null;
-      if (w.end > w.start) {
-        if (w.days.indexOf(day) >= 0 && m >= w.start && m < w.end) {
-          cand = new Date(now); cand.setHours(0, 0, 0, 0); cand.setMinutes(w.end);
-        }
-      } else { // crosses midnight
-        if (w.days.indexOf(day) >= 0 && m >= w.start) {
-          cand = new Date(now); cand.setDate(now.getDate() + 1); cand.setHours(0, 0, 0, 0); cand.setMinutes(w.end);
-        } else if (w.days.indexOf((day + 6) % 7) >= 0 && m < w.end) {
-          cand = new Date(now); cand.setHours(0, 0, 0, 0); cand.setMinutes(w.end);
-        }
-      }
-      if (cand && (!best || cand.getTime() > best.getTime())) best = cand; // latest end among overlapping windows
-    }
-    return best;
-  }
-
   function humanMins(mins) {
     if (mins < 1) return "less than a minute";
     if (mins < 60) return mins + (mins === 1 ? " minute" : " minutes");
@@ -432,11 +465,8 @@
   }
   function hideCountdown() { countdownEl.style.display = "none"; }
   function updateCountdown() {
-    var cur = now();
-    var end = currentWindowEnd(cur);
-    if (!end || overlayOpen()) { hideCountdown(); return; }
-    var rem = Math.round((end.getTime() - cur.getTime()) / 60000);
-    if (rem < 0) rem = 0;
+    var rem = currentWindowRemaining();
+    if (rem < 0 || overlayOpen()) { hideCountdown(); return; }
     countdownEl.textContent = "watching will end in: " + humanMins(rem);
     countdownEl.style.display = "block";
   }
@@ -450,11 +480,8 @@
   }
   function showBlocked() {
     if (playerScreen.classList.contains("active")) returnToGrid();
-    var cur = now(), nxt = nextAllowed(cur), msg = "—";
-    if (nxt) {
-      var rem = Math.round((nxt.getTime() - cur.getTime()) / 60000);
-      msg = whenLabel(nxt) + " (" + humanLong(rem) + " more)";
-    }
+    var ns = nextStart(), msg = "—";
+    if (ns) msg = nextLabel(ns) + " (" + humanLong(ns.until) + " more)";
     blockedMsg.textContent = "It's out of watching time, see you at: " + msg;
     blockedScreen.classList.add("active");
   }
@@ -1105,6 +1132,7 @@
   // =======================================================================
   loadDurations();
   loadCc();
+  getTZOffset();          // lock the timezone offset on first run (ignored thereafter)
   loadScheduleCache();   // apply last-known schedule before the network responds
   syncTime();            // fetch trusted network time ASAP
   loadYouTubeApi();

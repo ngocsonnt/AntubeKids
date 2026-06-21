@@ -1,6 +1,6 @@
 {
-  "versionCode": 21,
-  "versionName": "3.0",
+  "versionCode": 22,
+  "versionName": "3.1",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Clock-tamper fix: use Android SystemClock.elapsedRealtime for trusted time (old WebViews tie performance.now to system clock)"
+  "notes": "Timezone-tamper proof schedule: locked UTC offset + optional TZ row in Schedule sheet"
 }
