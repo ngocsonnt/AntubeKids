@@ -59,6 +59,8 @@ public class MainActivity extends Activity {
     private FrameLayout root;
     private ConfigServer configServer;
     private long stoppedAt = 0; // when the activity last went to background
+    private volatile long serverTimeAtSync = 0; // trusted epoch (ms) captured at last time sync
+    private volatile long elapsedAtSync = 0;     // SystemClock.elapsedRealtime() at that sync (monotonic)
 
     // YouTube native-fullscreen support
     private View customView;
@@ -334,6 +336,10 @@ public class MainActivity extends Activity {
                 } finally {
                     if (c != null) c.disconnect();
                 }
+                if (t > 0) {
+                    serverTimeAtSync = t;
+                    elapsedAtSync = SystemClock.elapsedRealtime();   // monotonic anchor
+                }
                 final long ft = t;
                 runOnUiThread(() -> {
                     if (webView != null) {
@@ -341,6 +347,16 @@ public class MainActivity extends Activity {
                     }
                 });
             }).start();
+        }
+
+        // Current trusted time (epoch ms) = server time + monotonic elapsed since sync.
+        // Immune to the user changing the device clock. "0" if not synced yet.
+        @JavascriptInterface
+        public String nowMillis() {
+            if (serverTimeAtSync > 0) {
+                return String.valueOf(serverTimeAtSync + (SystemClock.elapsedRealtime() - elapsedAtSync));
+            }
+            return "0";
         }
 
         // Start a tiny LAN web server so a phone can submit the sheet link.

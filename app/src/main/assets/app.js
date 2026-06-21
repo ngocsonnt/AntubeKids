@@ -330,6 +330,11 @@
     if (hasNative) { try { window.Native.fetchServerTime(); } catch (e) {} }
   }
   function now() {
+    // Prefer the native monotonic clock (SystemClock.elapsedRealtime) — unaffected
+    // by changing the device clock, and reliable even on old WebViews.
+    if (hasNative) {
+      try { var ms = parseInt(window.Native.nowMillis(), 10); if (ms > 0) return new Date(ms); } catch (e) {}
+    }
     if (timeBase) return new Date(timeBase.server + (perfNow() - timeBase.perf));
     return new Date();   // before the first sync (offline) -> device clock
   }

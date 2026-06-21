@@ -1,6 +1,6 @@
 {
-  "versionCode": 20,
-  "versionName": "2.9",
+  "versionCode": 21,
+  "versionName": "3.0",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Trusted network time (clock-change proof schedule); instant cached list on launch"
+  "notes": "Clock-tamper fix: use Android SystemClock.elapsedRealtime for trusted time (old WebViews tie performance.now to system clock)"
 }
