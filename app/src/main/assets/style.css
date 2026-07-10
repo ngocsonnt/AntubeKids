@@ -45,15 +45,17 @@ html, body {
 #main { display: flex; height: calc(100% - 14vh); }
 .grid {
     flex: 1;
+    min-width: 0;                 /* allow the grid to size correctly inside the flex row */
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    /* Tiles keep a sensible minimum width; the column count adapts to the space,
+       NOT to how many clips there are — so lots of clips never shrink the tiles. */
+    grid-template-columns: repeat(auto-fill, minmax(21vw, 1fr));
     gap: 2.4vh 2vw;
     padding: 1vh 3vw 4vh;
     height: 100%;
     overflow-y: auto;
     align-content: start;
 }
-#main.show-panel .grid { grid-template-columns: repeat(3, 1fr); }
 
 .sheet-panel {
     display: none;

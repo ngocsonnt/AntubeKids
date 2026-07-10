@@ -854,7 +854,7 @@
     refreshUpdateLine();
     checkUpdate();
     settingsScreen.classList.add("active");
-    setTimeout(function () { $("phone-btn").focus(); }, 50);
+    setTimeout(function () { var f = settingsFocusables(); if (f[0]) f[0].focus(); }, 50);
   }
   function closeSettings() {
     settingsScreen.classList.remove("active");
@@ -864,10 +864,9 @@
 
   // Focusable controls inside the Settings dialog, in navigation order.
   function settingsFocusables() {
-    // The link field and Save button are disabled (set the link from a phone instead).
-    var list = [$("phone-btn"), $("cc-btn"), $("settings-cancel")];
-    if (updateBtn && updateBtn.style.display !== "none") list.push(updateBtn);
-    return list;
+    // Only visible + enabled controls (handles Android vs iOS differences automatically).
+    var all = [sheetInput, $("settings-save"), $("phone-btn"), $("cc-btn"), $("settings-cancel"), updateBtn];
+    return all.filter(function (el) { return el && el.offsetParent !== null && !el.disabled; });
   }
 
   // ----- Captions (CC) toggle -----
@@ -1121,6 +1120,14 @@
   $("phone-close").addEventListener("click", closePhone);
   $("cc-btn").addEventListener("click", toggleCc);
   blockedScreen.addEventListener("click", hideBlocked);
+
+  // iOS wrapper: there's a touch keyboard, so allow editing the link here and
+  // hide the Wi-Fi phone-entry (the local server is Android-only).
+  if (window.__ios) {
+    sheetInput.disabled = false;
+    var svBtn = $("settings-save"); if (svBtn) svBtn.style.display = "";
+    var phBtn = $("phone-btn"); if (phBtn) phBtn.style.display = "none";
+  }
 
   // Keep header zone state in sync when navigating by touch/focus
   reloadBtn.addEventListener("focus", function () { zone = "header"; headerSel = 0; });

@@ -1,6 +1,6 @@
 {
-  "versionCode": 23,
-  "versionName": "3.2",
+  "versionCode": 24,
+  "versionName": "3.3",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Fix wrong time: ignore device timezone, default +7 (override via TZ row)"
+  "notes": "Responsive grid: tiles keep a min width so sheets with many clips don't shrink"
 }
