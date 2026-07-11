@@ -887,17 +887,23 @@
   }
 
   // ----- Enter link from phone (Wi-Fi mini web server) -----
-  function openPhone() {
-    if (!hasNative) { phoneStatusEl.textContent = ""; }
-    var url = "";
-    if (hasNative) { try { url = window.Native.startConfigServer() || ""; } catch (e) {} }
-    if (!url) {
-      phoneUrlEl.textContent = "—";
-      phoneStatusEl.textContent = "No Wi-Fi connection found. Connect the projector to Wi-Fi and try again.";
-    } else {
+  function showPhoneUrl(url) {
+    if (url) {
       phoneUrlEl.textContent = url;
       phoneStatusEl.textContent = "Waiting for your phone…";
+    } else {
+      phoneUrlEl.textContent = "—";
+      phoneStatusEl.textContent = "No Wi-Fi connection found. Connect to the same Wi-Fi and try again.";
     }
+  }
+  // iOS starts the server asynchronously and pushes the address here.
+  window.onConfigServerUrl = function (url) { showPhoneUrl(url || ""); };
+  function openPhone() {
+    phoneUrlEl.textContent = "…";
+    phoneStatusEl.textContent = "Starting…";
+    var url = "";
+    if (hasNative) { try { url = window.Native.startConfigServer() || ""; } catch (e) {} }
+    if (url) showPhoneUrl(url);   // Android returns synchronously; iOS calls onConfigServerUrl
     phoneScreen.classList.add("active");
     setTimeout(function () { $("phone-close").focus(); }, 50);
   }
@@ -1120,14 +1126,6 @@
   $("phone-close").addEventListener("click", closePhone);
   $("cc-btn").addEventListener("click", toggleCc);
   blockedScreen.addEventListener("click", hideBlocked);
-
-  // iOS wrapper: there's a touch keyboard, so allow editing the link here and
-  // hide the Wi-Fi phone-entry (the local server is Android-only).
-  if (window.__ios) {
-    sheetInput.disabled = false;
-    var svBtn = $("settings-save"); if (svBtn) svBtn.style.display = "";
-    var phBtn = $("phone-btn"); if (phBtn) phBtn.style.display = "none";
-  }
 
   // Keep header zone state in sync when navigating by touch/focus
   reloadBtn.addEventListener("focus", function () { zone = "header"; headerSel = 0; });

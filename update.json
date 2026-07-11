@@ -1,6 +1,6 @@
 {
-  "versionCode": 24,
-  "versionName": "3.3",
+  "versionCode": 25,
+  "versionName": "3.4",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Responsive grid: tiles keep a min width so sheets with many clips don't shrink"
+  "notes": "Thumbnail height uses fixed 16:9 padding box (no squish with many clips)"
 }
