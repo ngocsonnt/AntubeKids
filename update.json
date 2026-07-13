@@ -1,6 +1,6 @@
 {
-  "versionCode": 27,
-  "versionName": "3.6",
+  "versionCode": 28,
+  "versionName": "3.7",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Fix thumbnail collapse: remove grid-auto-rows min-content (broke % padding aspect box)"
+  "notes": "Grid uses flexbox (fixes clipped thumbnail/title on projector WebView)"
 }

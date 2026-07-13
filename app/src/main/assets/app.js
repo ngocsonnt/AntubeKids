@@ -587,7 +587,21 @@
     if (!gridEl) return;
     var w = gridEl.clientWidth || 0;
     var cols = (w && w < 640) ? 3 : 4;
-    gridEl.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
+    gridEl.style.setProperty("--cols", cols);
+    sizeThumbs();
+  }
+  // Give each thumbnail a definite pixel height (= its width × 9/16). Percentage
+  // padding boxes confuse grid row sizing on old projector WebViews and clip the
+  // title; an explicit px height makes the row = thumbnail + title correctly.
+  function sizeThumbs() {
+    var wraps = gridEl.querySelectorAll(".thumb-wrap");
+    for (var i = 0; i < wraps.length; i++) {
+      var ww = wraps[i].offsetWidth;
+      if (ww) {
+        wraps[i].style.paddingTop = "0";
+        wraps[i].style.height = Math.round(ww * 9 / 16) + "px";
+      }
+    }
   }
 
   // ----- Clip durations -----

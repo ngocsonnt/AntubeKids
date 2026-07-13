@@ -47,17 +47,18 @@ html, body {
 #main { display: flex; height: calc(100% - 14vh); }
 .grid {
     flex: 1;
-    min-width: 0;                 /* allow the grid to size correctly inside the flex row */
-    display: grid;
-    /* Fixed column count (set precisely from JS in layoutGrid) so it doesn't depend
-       on vw quirks. Default 4 per row; JS drops to 3 on narrow screens. */
-    grid-template-columns: repeat(4, 1fr);
+    min-width: 0;
+    /* Flexbox (not CSS grid): old projector WebViews mis-size grid rows that
+       contain a %-padding aspect box, which clipped the title. Flex wrap lets
+       each tile keep its natural height (thumbnail + title). */
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
     gap: 2.4vh 2vw;
     padding: 1vh 3vw 4vh;
     height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    align-content: start;
 }
 
 .sheet-panel {
@@ -95,7 +96,9 @@ html, body {
 
 .tile {
     position: relative;
-    min-width: 0;
+    flex: 0 0 auto;
+    /* --cols set from JS (4, or 3 when narrow); gap is 2vw between columns */
+    width: calc((100% - (var(--cols, 4) - 1) * 2vw) / var(--cols, 4));
     border-radius: 1.6vh;
     overflow: hidden;
     background: #1c2536;
