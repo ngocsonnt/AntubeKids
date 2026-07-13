@@ -52,7 +52,6 @@ html, body {
     /* Fixed column count (set precisely from JS in layoutGrid) so it doesn't depend
        on vw quirks. Default 4 per row; JS drops to 3 on narrow screens. */
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: min-content;   /* each row fits its content; never compressed */
     gap: 2.4vh 2vw;
     padding: 1vh 3vw 4vh;
     height: 100%;
