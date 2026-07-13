@@ -1,6 +1,6 @@
 {
-  "versionCode": 25,
-  "versionName": "3.4",
+  "versionCode": 26,
+  "versionName": "3.5",
   "apkUrl": "https://github.com/ngocsonnt/AntubeKids/raw/main/apk/AntubeKids-latest.apk",
-  "notes": "Thumbnail height uses fixed 16:9 padding box (no squish with many clips)"
+  "notes": "Grid: fixed 4 columns (3 when narrow) so projector shows 3-4 clips per row"
 }

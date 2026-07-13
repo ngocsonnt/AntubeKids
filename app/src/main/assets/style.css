@@ -1,3 +1,5 @@
+:root { --fs: 1; }
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
@@ -21,10 +23,10 @@ html, body {
     justify-content: space-between;
     padding: 2.2vh 3vw;
 }
-.title { font-size: 4.2vh; font-weight: 800; letter-spacing: .5px; }
+.title { font-size: calc(4.2vh * var(--fs)); font-weight: 800; letter-spacing: .5px; }
 .top-actions { display: flex; gap: 1.5vw; }
 .icon-btn {
-    font-size: 3.4vh;
+    font-size: calc(3.4vh * var(--fs));
     background: rgba(255,255,255,.08);
     border: 2px solid transparent;
     border-radius: 50%;
@@ -36,7 +38,7 @@ html, body {
 
 .status {
     padding: 1vh 3vw;
-    font-size: 2.6vh;
+    font-size: calc(2.6vh * var(--fs));
     color: #9fb3d1;
     min-height: 4vh;
 }
@@ -47,9 +49,9 @@ html, body {
     flex: 1;
     min-width: 0;                 /* allow the grid to size correctly inside the flex row */
     display: grid;
-    /* Tiles keep a sensible minimum width; the column count adapts to the space,
-       NOT to how many clips there are — so lots of clips never shrink the tiles. */
-    grid-template-columns: repeat(auto-fill, minmax(21vw, 1fr));
+    /* Fixed column count (set precisely from JS in layoutGrid) so it doesn't depend
+       on vw quirks. Default 4 per row; JS drops to 3 on narrow screens. */
+    grid-template-columns: repeat(4, 1fr);
     grid-auto-rows: min-content;   /* each row fits its content; never compressed */
     gap: 2.4vh 2vw;
     padding: 1vh 3vw 4vh;
@@ -68,11 +70,11 @@ html, body {
     border-left: 2px solid rgba(255,255,255,.1);
 }
 #main.show-panel .sheet-panel { display: block; }
-.panel-title { font-size: 3vh; margin: 1vh 0 2vh; color: #9fb3d1; }
+.panel-title { font-size: calc(3vh * var(--fs)); margin: 1vh 0 2vh; color: #9fb3d1; }
 .sheet-list { display: flex; flex-direction: column; gap: 1.4vh; }
 .sheet-item {
     text-align: left;
-    font-size: 2.8vh;
+    font-size: calc(2.8vh * var(--fs));
     font-weight: 700;
     padding: 1.8vh 1.4vw;
     border-radius: 1.2vh;
@@ -94,6 +96,7 @@ html, body {
 
 .tile {
     position: relative;
+    min-width: 0;
     border-radius: 1.6vh;
     overflow: hidden;
     background: #1c2536;
@@ -131,7 +134,7 @@ html, body {
     bottom: 0.8vh;
     background: rgba(0,0,0,.82);
     color: #fff;
-    font-size: 2vh;
+    font-size: calc(2vh * var(--fs));
     font-weight: 700;
     line-height: 1;
     padding: 0.5vh 0.9vw;
@@ -143,7 +146,7 @@ html, body {
     align-items: center;
     gap: 1vw;
     padding: 1.4vh 1.2vw;
-    font-size: 2.6vh;
+    font-size: calc(2.6vh * var(--fs));
     font-weight: 700;
     line-height: 1.2;
 }
@@ -154,7 +157,7 @@ html, body {
     border-radius: 50%;
     width: 4.6vh; height: 4.6vh;
     display: flex; align-items: center; justify-content: center;
-    font-size: 2.4vh;
+    font-size: calc(2.4vh * var(--fs));
 }
 .tile .txt {
     overflow: hidden;
@@ -170,7 +173,7 @@ html, body {
 .back-btn {
     position: absolute;
     top: 2.5vh; left: 2.5vw;
-    font-size: 2.8vh;
+    font-size: calc(2.8vh * var(--fs));
     font-weight: 700;
     padding: 1.4vh 2vw;
     border-radius: 5vh;
@@ -184,7 +187,7 @@ html, body {
 .now-playing {
     position: absolute;
     top: 2.5vh; right: 2.5vw;
-    font-size: 2.6vh;
+    font-size: calc(2.6vh * var(--fs));
     font-weight: 700;
     padding: 1vh 2vw;
     border-radius: 5vh;
@@ -200,7 +203,7 @@ html, body {
 .time {
     position: absolute;
     bottom: 2.2vh; left: 2.5vw;
-    font-size: 2.8vh;
+    font-size: calc(2.8vh * var(--fs));
     font-weight: 700;
     padding: 0.8vh 1.8vw;
     border-radius: 4vh;
@@ -236,11 +239,11 @@ html, body {
     border-radius: 2vh;
     padding: 4vh 3vw;
 }
-.settings-box h2 { font-size: 4vh; margin-bottom: 2vh; }
-.hint { font-size: 2.4vh; color: #b9c7de; margin-bottom: 1.6vh; line-height: 1.5; }
+.settings-box h2 { font-size: calc(4vh * var(--fs)); margin-bottom: 2vh; }
+.hint { font-size: calc(2.4vh * var(--fs)); color: #b9c7de; margin-bottom: 1.6vh; line-height: 1.5; }
 #sheet-input {
     width: 100%;
-    font-size: 2.8vh;
+    font-size: calc(2.8vh * var(--fs));
     padding: 1.8vh 1.5vw;
     border-radius: 1.2vh;
     border: 2px solid #3a465e;
@@ -252,7 +255,7 @@ html, body {
 #sheet-input:disabled { opacity: .6; color: #9fb3d1; }
 .settings-actions { display: flex; gap: 2vw; }
 .primary-btn, .ghost-btn {
-    font-size: 2.8vh;
+    font-size: calc(2.8vh * var(--fs));
     font-weight: 700;
     padding: 1.6vh 3vw;
     border-radius: 1.2vh;
@@ -262,11 +265,11 @@ html, body {
 .primary-btn { background: #3d5afe; color: #fff; }
 .ghost-btn { background: rgba(255,255,255,.1); color: #fff; }
 .primary-btn:focus, .ghost-btn:focus { outline: none; border-color: #ffd54f; }
-.settings-msg { margin-top: 2vh; font-size: 2.4vh; color: #ff8a80; min-height: 3vh; }
-.version { margin-top: 2vh; font-size: 2vh; color: #6f7f99; text-align: right; }
+.settings-msg { margin-top: 2vh; font-size: calc(2.4vh * var(--fs)); color: #ff8a80; min-height: 3vh; }
+.version { margin-top: 2vh; font-size: calc(2vh * var(--fs)); color: #6f7f99; text-align: right; }
 .phone-entry { width: 100%; margin-top: 1.6vh; }
 .phone-url {
-    font-size: 4vh;
+    font-size: calc(4vh * var(--fs));
     font-weight: 800;
     color: #ffd54f;
     text-align: center;
@@ -274,7 +277,7 @@ html, body {
     word-break: break-all;
 }
 .update-row { display: flex; align-items: center; gap: 2vw; margin-top: 2.5vh; }
-.update-text { font-size: 2.4vh; color: #b9c7de; flex: 1; }
+.update-text { font-size: calc(2.4vh * var(--fs)); color: #b9c7de; flex: 1; }
 
 /* Update banner on the grid */
 .update-banner {
@@ -284,7 +287,7 @@ html, body {
     border-radius: 1.2vh;
     background: #2e7d32;
     color: #fff;
-    font-size: 2.6vh;
+    font-size: calc(2.6vh * var(--fs));
     font-weight: 700;
     cursor: pointer;
 }
@@ -296,7 +299,7 @@ html, body {
     right: 2.5vw;
     bottom: 2.2vh;          /* level with the clip time on the left (.time) */
     z-index: 40;
-    font-size: 2.8vh;
+    font-size: calc(2.8vh * var(--fs));
     font-weight: 700;
     color: #fff;
     background: rgba(0,0,0,.6);
@@ -318,9 +321,9 @@ html, body {
 }
 .blocked.active { display: flex; }
 .blocked-box { text-align: center; padding: 6vw; max-width: 90vw; }
-.blocked-emoji { font-size: 16vh; line-height: 1; margin-bottom: 3vh; }
+.blocked-emoji { font-size: calc(16vh * var(--fs)); line-height: 1; margin-bottom: 3vh; }
 .blocked-msg {
-    font-size: 5vh;
+    font-size: calc(5vh * var(--fs));
     font-weight: 800;
     line-height: 1.4;
     color: #fff;
@@ -335,7 +338,7 @@ html, body {
     align-items: center;
     justify-content: center;
     text-align: center;
-    font-size: 3vh;
+    font-size: calc(3vh * var(--fs));
     color: #9fb3d1;
     padding: 6vw;
     gap: 2vh;

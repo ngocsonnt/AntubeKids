@@ -577,7 +577,17 @@
       })(i);
     }
     if (selected >= videos.length) selected = 0;
+    layoutGrid();
     updateSelection();
+  }
+
+  // Fixed column count based on the grid's real width (not vw, which is unreliable
+  // on some projector WebViews). 4 per row, dropping to 3 when narrow.
+  function layoutGrid() {
+    if (!gridEl) return;
+    var w = gridEl.clientWidth || 0;
+    var cols = (w && w < 640) ? 3 : 4;
+    gridEl.style.gridTemplateColumns = "repeat(" + cols + ", 1fr)";
   }
 
   // ----- Clip durations -----
@@ -1126,6 +1136,7 @@
   $("phone-close").addEventListener("click", closePhone);
   $("cc-btn").addEventListener("click", toggleCc);
   blockedScreen.addEventListener("click", hideBlocked);
+  window.addEventListener("resize", layoutGrid);
 
   // Keep header zone state in sync when navigating by touch/focus
   reloadBtn.addEventListener("focus", function () { zone = "header"; headerSel = 0; });
